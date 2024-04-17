@@ -5,3 +5,11 @@ bin-int/
 
 #files
 *.user
+
+
+#Visual Studio files
+**.sln
+**.vcxproj
+**.vcxproj.filters
+**.vcxproj.user
+**.csproj
