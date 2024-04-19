@@ -20,3 +20,16 @@ namespace soso {
 	};
 }
 
+// Core logging macros
+#define SS_CORE_FATAL(...) ::soso::Log::GetCoreLogger()->fatal(__VA_ARGS__)
+#define SS_CORE_ERROR(...) ::soso::Log::GetCoreLogger()->error(__VA_ARGS__)
+#define SS_CORE_WARN(...)  ::soso::Log::GetCoreLogger()->warn(__VA_ARGS__)
+#define SS_CORE_INFO(...)  ::soso::Log::GetCoreLogger()->info(__VA_ARGS__)
+#define SS_CORE_TRACE(...) ::soso::Log::GetCoreLogger()->trace(__VA_ARGS__)
+
+// Client logging macros
+#define SS_FATAL(...)	   ::soso::Log::GetClientLogger()->fatal(__VA_ARGS__)
+#define SS_ERROR(...)	   ::soso::Log::GetClientLogger()->error(__VA_ARGS__)
+#define SS_WARN(...)	   ::soso::Log::GetClientLogger()->warn(__VA_ARGS__)
+#define SS_INFO(...)	   ::soso::Log::GetClientLogger()->info(__VA_ARGS__)
+#define SS_TRACE(...)	   ::soso::Log::GetClientLogger()->trace(__VA_ARGS__)
