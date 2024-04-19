@@ -8,8 +8,8 @@ int main(int argc, char** argv) {
 
 	soso::Log::Init();
 
-	soso::Log::GetClientLogger()->warn("testing");
-	soso::Log::GetCoreLogger()->error("soso");
+	SS_CORE_WARN("Test");
+	SS_INFO("Test");
 
 	auto app = soso::CreateApplication();
 	app->Run();
