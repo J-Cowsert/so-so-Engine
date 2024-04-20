@@ -1,3 +1,4 @@
+#include "sspch.h"
 #include "Application.h"
 
 #include "so-so/Events/ApplicationEvent.h"

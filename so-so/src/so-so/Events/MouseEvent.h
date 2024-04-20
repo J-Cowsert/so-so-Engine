@@ -2,9 +2,6 @@
 
 #include "Event.h"
 
-#include <sstream>
-
-
 namespace soso {
 
 	class SOSO_API MouseMovedEvent : public Event {

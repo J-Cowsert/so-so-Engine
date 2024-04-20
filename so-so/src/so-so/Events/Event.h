@@ -2,8 +2,6 @@
 
 #include "so-so/core.h"
 
-#include <string>
-#include <functional>
 
 namespace soso {
 
@@ -50,8 +48,6 @@ namespace soso {
 	protected:
 
 		bool m_Handled = false;
-
-
 	};
 
 	class EventDispatcher {
@@ -81,6 +77,4 @@ namespace soso {
 	inline std::ostream& operator<<(std::ostream& os, const Event& e) {
 		return os << e.ToString();
 	}
-
-	
 }
