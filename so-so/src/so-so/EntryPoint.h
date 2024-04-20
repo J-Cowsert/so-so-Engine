@@ -7,9 +7,7 @@ extern  soso::Application* soso::CreateApplication();
 int main(int argc, char** argv) {
 
 	soso::Log::Init();
-
-	SS_CORE_WARN("Test");
-	SS_INFO("Test");
+	SS_INFO("Log::Init in EntryPoint.h\n");
 
 	auto app = soso::CreateApplication();
 	app->Run();
