@@ -7,7 +7,7 @@
 namespace soso {
 
 	Application::Application() {
-
+		m_Window = std::unique_ptr<Window>(Window::Create());
 	}
 
 	Application::~Application() {
@@ -16,10 +16,10 @@ namespace soso {
 
 	void Application::Run() {
 
-		WindowResizeEvent e(1980, 1000);
-		SS_TRACE(e);
-
-		while (true);
+		
+		while (m_Running) {
+			m_Window->OnUpdate();
+		}
 	}
 
 }
