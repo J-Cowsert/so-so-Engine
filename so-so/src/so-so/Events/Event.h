@@ -2,7 +2,6 @@
 
 #include "so-so/core.h"
 
-
 namespace soso {
 
 

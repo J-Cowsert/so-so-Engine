@@ -27,6 +27,7 @@ namespace soso {
 #define SS_CORE_INFO(...)     ::soso::Log::GetCoreLogger()->info(__VA_ARGS__)
 #define SS_CORE_TRACE(...)    ::soso::Log::GetCoreLogger()->trace(__VA_ARGS__)
 
+
 // Client logging macros
 #define SS_CRITICAL(...)      ::soso::Log::GetClientLogger()->critical(__VA_ARGS__)
 #define SS_ERROR(...)	      ::soso::Log::GetClientLogger()->error(__VA_ARGS__)
