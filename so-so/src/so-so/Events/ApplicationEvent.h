@@ -1,7 +1,9 @@
 #pragma once
 
 #include "Event.h"
-//#include <sstream>
+
+// Why is there a compiler error when sstream is taken out??
+#include <sstream>
 
 namespace soso {
 
