@@ -14,10 +14,12 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 -- Include directories relative to root folder (solution directory)
 IncludeDir = {}
 IncludeDir["GLFW"] = "so-so/vendor/GLFW/include"
+IncludeDir["Glad"] = "so-so/vendor/Glad/include"
 
 
 -- This includes the premake5.lua file from forked glfw repo into project "so-so"
 include "so-so/vendor/GLFW"
+include "so-so/vendor/Glad"
 
 project "so-so"
 	location "so-so"
@@ -41,12 +43,15 @@ project "so-so"
 		"%{prj.name}/src",
 		"%{prj.name}/vendor/spdlog/include",
 		"%{prj.name}/vendor/GLFW/include",
+		"%{prj.name}/vendor/Glad/include",
+		"{IncludeDir.Glad}",
 		"{IncludeDir.GLFW}"
 	}
 
 	links 
 	{
 		"GLFW",
+		"Glad",
 		"opengl32.lib",
 		"dwmapi.lib"
 	}
@@ -59,7 +64,8 @@ project "so-so"
 		defines 
 		{
 			"SS_PLATFORM_WINDOWS",
-			"SS_BUILD_DLL"
+			"SS_BUILD_DLL",
+			"GLFW_INCLUDE_NONE"
 		}
 
 		postbuildcommands
