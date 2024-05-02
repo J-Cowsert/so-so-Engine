@@ -8,7 +8,6 @@
 
 namespace soso {
 
-
 	struct WindowProps {
 		std::string Title;
 		unsigned int Width;
