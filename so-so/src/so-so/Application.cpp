@@ -2,6 +2,7 @@
 #include "Application.h"
 
 #include "so-so/Log.h"
+#include "Input.h"
 
 #include "glad/glad.h"
 
@@ -40,8 +41,6 @@ namespace soso {
 		EventDispatcher dispatcher(e);
 		dispatcher.Dispatch<WindowCloseEvent>(BIND_EVENT_FN(Application::OnWindowClose));
 
-		SS_CORE_TRACE("{0}", e);
-
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin(); ) {
 			(*--it)->OnEvent(e);
 			if (e.Handled)
@@ -51,8 +50,6 @@ namespace soso {
 
 	void Application::Run() {
 
-		
-		
 		while (m_Running) {
 
 			glClearColor(0, 0, 1, 1);
@@ -60,6 +57,9 @@ namespace soso {
 
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();
+
+			auto [x, y] = Input::GetMousePosition();
+			SS_CORE_TRACE("{0}, {1}", x, y);
 
 			m_Window->OnUpdate();
 		}
