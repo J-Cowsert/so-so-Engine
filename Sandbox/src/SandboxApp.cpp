@@ -9,7 +9,7 @@ public:
 	}
 
 	void OnUpdate() override {
-		SS_INFO("ExampleLayer::OnUpdate");
+		
 	}
 
 	void OnEvent(soso::Event& event) override {
