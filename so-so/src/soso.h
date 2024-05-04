@@ -5,6 +5,7 @@
 #include "so-so/Log.h"
 #include "so-so/Layer.h"
 #include "so-so/Application.h"
+#include "so-so/ImGui/ImGuiLayer.h"
 
 // ----EntryPoint------------------
 #include "so-so/EntryPoint.h"
