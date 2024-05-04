@@ -4,3 +4,6 @@
 [submodule "so-so/vendor/GLFW"]
 	path = so-so/vendor/GLFW
 	url = https://github.com/JamesDex/glfw.git
+[submodule "so-so/vendor/imgui"]
+	path = so-so/vendor/imgui
+	url = https://github.com/DexNipp/imgui.git

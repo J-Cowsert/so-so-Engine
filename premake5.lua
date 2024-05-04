@@ -15,16 +15,19 @@ outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 IncludeDir = {}
 IncludeDir["GLFW"] = "so-so/vendor/GLFW/include"
 IncludeDir["Glad"] = "so-so/vendor/Glad/include"
+IncludeDir["ImGui"] = "so-so/vendor/imgui"
 
 
 -- This includes the premake5.lua file from forked glfw repo into project "so-so"
 include "so-so/vendor/GLFW"
 include "so-so/vendor/Glad"
+include "so-so/vendor/imgui"
 
 project "so-so"
 	location "so-so"
 	kind "SharedLib"
 	language "C++"
+	staticruntime "off"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -44,21 +47,24 @@ project "so-so"
 		"%{prj.name}/vendor/spdlog/include",
 		"%{prj.name}/vendor/GLFW/include",
 		"%{prj.name}/vendor/Glad/include",
+		"%{prj.name}/vendor/imgui",
 		"{IncludeDir.Glad}",
-		"{IncludeDir.GLFW}"
+		"{IncludeDir.GLFW}",
+		"{IncludeDir.ImGui}"
 	}
 
 	links 
 	{
 		"GLFW",
 		"Glad",
+		"imgui",
 		"opengl32.lib",
 		"dwmapi.lib"
 	}
 
 	filter "system:windows"
 		cppdialect "C++17"
-		staticruntime "On"
+		--staticruntime "On"
 		systemversion "latest"
 
 		defines 
@@ -75,16 +81,19 @@ project "so-so"
 	
 	filter "configurations:Debug"
 		defines "SS_DEBUG"
+		--buildoptions "/MDd"
 		runtime "Debug"
 		symbols "On"
 
 	filter "configurations:Release"
 		defines "SS_RELEASE"
+		--buildoptions "/MD"
 		runtime "Release"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "SS_DIST"
+		--buildoptions "/MD"
 		runtime "Release"
 		optimize "On"
 
@@ -93,6 +102,7 @@ project "Sandbox"
 	location "Sandbox"
 	kind "ConsoleApp"
 	language "C++"
+	staticruntime "off"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -116,7 +126,7 @@ project "Sandbox"
 
 	filter "system:windows"
 		cppdialect "C++17"
-		staticruntime "On"
+		--staticruntime "On"
 		systemversion "latest"
 
 		defines 
@@ -126,15 +136,18 @@ project "Sandbox"
 
 	filter "configurations:Debug"
 		defines "SS_DEBUG"
+		--buildoptions "/MDd"
 		runtime "Debug"
 		symbols "On"
 
 	filter "configurations:Release"
 		defines "SS_RELEASE"
+		--buildoptions "/MD"
 		runtime "Release"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "SS_DIST"
+		--buildoptions "/MD"
 		runtime "Release"
 		optimize "On"
