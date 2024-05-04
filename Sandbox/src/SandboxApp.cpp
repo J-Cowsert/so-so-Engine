@@ -13,7 +13,7 @@ public:
 	}
 
 	void OnEvent(soso::Event& event) override {
-		SS_TRACE("{0}", event);
+		//SS_TRACE("{0}", event);
 	}
 };
 

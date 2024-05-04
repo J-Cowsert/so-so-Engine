@@ -31,6 +31,7 @@ namespace soso {
 	}
 
 	void WindowsWindow::Init(const WindowProps& props) {
+
 		m_Data.Title = props.Title;
 		m_Data.Width = props.Width;
 		m_Data.Height = props.Height;
@@ -38,11 +39,10 @@ namespace soso {
 		SS_CORE_INFO("Creating window {0} ({1}, {2})", props.Title, props.Width, props.Height);
 		
 		if (!s_GLFWInitialized) {
-			int success = glfwInit();
 
+			int success = glfwInit();
 			SS_CORE_ASSERT(success, "Failed to initialize GLFW");
 			glfwSetErrorCallback(GLFWErrorCallback);
-
 			s_GLFWInitialized = true;
 		}
 
