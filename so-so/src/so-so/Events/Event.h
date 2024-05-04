@@ -4,7 +4,6 @@
 
 namespace soso {
 
-
 	enum class EventType {
 
 		None = 0,
