@@ -1,5 +1,7 @@
 #include <soso.h>
 
+#include "imgui/imgui.h"
+
 class ExampleLayer : public soso::Layer {
 public:
 
@@ -10,6 +12,12 @@ public:
 
 	void OnUpdate() override {
 		
+	}
+	
+	void OnImGuiRender() override {
+		ImGui::Begin("Test");
+		ImGui::Text("Hello World");
+		ImGui::End();
 	}
 
 	void OnEvent(soso::Event& event) override {
@@ -22,7 +30,6 @@ class Sandbox : public soso::Application {
 public:
 	Sandbox() {
 		PushLayer(new ExampleLayer());
-		PushOverlay(new soso::ImGuiLayer());
 	}
 
 	~Sandbox() {

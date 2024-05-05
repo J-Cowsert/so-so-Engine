@@ -6,6 +6,8 @@
 #include "so-so/Events/Event.h"
 #include "so-so/Events/ApplicationEvent.h"
 
+#include "so-so/ImGui/ImGuiLayer.h"
+
 namespace soso {
 
 	class SOSO_API Application
@@ -30,6 +32,7 @@ namespace soso {
 		bool OnWindowClose(WindowCloseEvent& e);
 
 		std::unique_ptr<Window> m_Window;
+		ImGuiLayer* m_ImGuiLayer;
 		bool m_Running = true;
 		LayerStack m_LayerStack;
 
