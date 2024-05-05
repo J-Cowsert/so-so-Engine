@@ -1,5 +1,6 @@
 workspace "so-so"
 	architecture "x64"
+	startproject "Sandbox"
 
 	configurations 
 	{
@@ -16,6 +17,7 @@ IncludeDir = {}
 IncludeDir["GLFW"] = "so-so/vendor/GLFW/include"
 IncludeDir["Glad"] = "so-so/vendor/Glad/include"
 IncludeDir["ImGui"] = "so-so/vendor/imgui"
+IncludeDir["glm"] = "so-so/vendor/glm"
 
 
 -- This includes the premake5.lua file from forked glfw repo into project "so-so"
@@ -38,7 +40,9 @@ project "so-so"
 	files
 	{
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp"
+		"%{prj.name}/src/**.cpp",
+		"%{prj.name}/vendor/glm/glm/**.hpp",
+		"%{prj.name}/vendor/glm/glm/**.inl"
 	}
 
 	includedirs
@@ -48,9 +52,7 @@ project "so-so"
 		"%{prj.name}/vendor/GLFW/include",
 		"%{prj.name}/vendor/Glad/include",
 		"%{prj.name}/vendor/imgui",
-		"{IncludeDir.Glad}",
-		"{IncludeDir.GLFW}",
-		"{IncludeDir.ImGui}"
+		"%{prj.name}/vendor/glm"
 	}
 
 	links 
@@ -73,6 +75,7 @@ project "so-so"
 			"SS_BUILD_DLL",
 			"GLFW_INCLUDE_NONE"
 		}
+		
 
 		postbuildcommands
 		{
@@ -116,7 +119,8 @@ project "Sandbox"
 	includedirs
 	{
 		"so-so/vendor/spdlog/include",
-		"so-so/src"
+		"so-so/src",
+		"so-so/vendor"
 	}
 
 	links 
@@ -133,7 +137,7 @@ project "Sandbox"
 		{
 			"SS_PLATFORM_WINDOWS"
 		}
-
+		
 	filter "configurations:Debug"
 		defines "SS_DEBUG"
 		--buildoptions "/MDd"
