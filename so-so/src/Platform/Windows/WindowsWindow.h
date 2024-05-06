@@ -1,6 +1,8 @@
 #pragma once
 
 #include "so-so/Window.h"
+#include "so-so/Renderer/GraphicsContext.h"
+
 #include "GLFW/glfw3.h"
 
 
@@ -27,6 +29,8 @@ namespace soso {
 	private:
 		virtual void Init(const WindowProps& props);
 		virtual void Shutdown();
+
+		GraphicsContext* m_Context;
 
 	private:
 		GLFWwindow* m_Window;
