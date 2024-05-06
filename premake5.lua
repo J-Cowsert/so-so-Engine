@@ -12,12 +12,12 @@ workspace "so-so"
 
 outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
--- Include directories relative to root folder (solution directory)
-IncludeDir = {}
-IncludeDir["GLFW"] = "so-so/vendor/GLFW/include"
-IncludeDir["Glad"] = "so-so/vendor/Glad/include"
-IncludeDir["ImGui"] = "so-so/vendor/imgui"
-IncludeDir["glm"] = "so-so/vendor/glm"
+-- -- Include directories relative to root folder (solution directory)
+-- IncludeDir = {}
+-- IncludeDir["GLFW"] = "so-so/vendor/GLFW/include"
+-- IncludeDir["Glad"] = "so-so/vendor/Glad/include"
+-- IncludeDir["ImGui"] = "so-so/vendor/imgui"
+-- IncludeDir["glm"] = "so-so/vendor/glm"
 
 
 -- This includes the premake5.lua file from forked glfw repo into project "so-so"
@@ -27,9 +27,10 @@ include "so-so/vendor/imgui"
 
 project "so-so"
 	location "so-so"
-	kind "SharedLib"
+	kind "StaticLib"
 	language "C++"
-	staticruntime "off"
+	cppdialect "C++17"
+	staticruntime "on"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -65,8 +66,7 @@ project "so-so"
 	}
 
 	filter "system:windows"
-		cppdialect "C++17"
-		--staticruntime "On"
+		
 		systemversion "latest"
 
 		defines 
@@ -75,28 +75,19 @@ project "so-so"
 			"SS_BUILD_DLL",
 			"GLFW_INCLUDE_NONE"
 		}
-		
-
-		postbuildcommands
-		{
-			("{COPY} %{cfg.buildtarget.relpath} ../bin/" .. outputdir .. "/Sandbox")
-		}
 	
 	filter "configurations:Debug"
 		defines "SS_DEBUG"
-		--buildoptions "/MDd"
 		runtime "Debug"
 		symbols "On"
 
 	filter "configurations:Release"
 		defines "SS_RELEASE"
-		--buildoptions "/MD"
 		runtime "Release"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "SS_DIST"
-		--buildoptions "/MD"
 		runtime "Release"
 		optimize "On"
 
@@ -105,7 +96,8 @@ project "Sandbox"
 	location "Sandbox"
 	kind "ConsoleApp"
 	language "C++"
-	staticruntime "off"
+	cppdialect "C++17"
+	staticruntime "on"
 
 	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
@@ -129,8 +121,7 @@ project "Sandbox"
 	}
 
 	filter "system:windows"
-		cppdialect "C++17"
-		--staticruntime "On"
+
 		systemversion "latest"
 
 		defines 
@@ -140,18 +131,15 @@ project "Sandbox"
 		
 	filter "configurations:Debug"
 		defines "SS_DEBUG"
-		--buildoptions "/MDd"
 		runtime "Debug"
 		symbols "On"
 
 	filter "configurations:Release"
 		defines "SS_RELEASE"
-		--buildoptions "/MD"
 		runtime "Release"
 		optimize "On"
 
 	filter "configurations:Dist"
 		defines "SS_DIST"
-		--buildoptions "/MD"
 		runtime "Release"
 		optimize "On"

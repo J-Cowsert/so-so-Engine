@@ -1,12 +1,17 @@
 #pragma once
 
 #ifdef SS_PLATFORM_WINDOWS
+#if SS_DYNAMIC_LINKING
+
 	#ifdef SS_BUILD_DLL
 		#define SOSO_API __declspec(dllexport)
 	#else
 		#define SOSO_API __declspec(dllimport)
 	#endif // SS_BUILD
 
+#else
+	#define SOSO_API
+#endif // SS_DYNAMIC_LINKING
 #else
 #error soso only supports Windows :(
 #endif // SS_PLATFORM_WINDOWS
