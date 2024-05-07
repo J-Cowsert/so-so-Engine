@@ -12,7 +12,6 @@
 #include <Glad/glad.h>
 
 
-
 namespace soso {
 
 	ImGuiLayer::ImGuiLayer() 
@@ -62,8 +61,7 @@ namespace soso {
 	void ImGuiLayer::OnImGuiRender() {
 
 		static bool show = true;
-		// ImGui::ShowDemoWindow(&show);
-		ImGui::ShowMetricsWindow(&show);
+		//ImGui::ShowDemoWindow(&show);
 	}
 
 	void ImGuiLayer::Begin() {

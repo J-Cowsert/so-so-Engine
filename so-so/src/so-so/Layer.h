@@ -23,6 +23,3 @@ namespace soso {
 		const std::string& m_DebugName;
 	};
 }
-
-
-

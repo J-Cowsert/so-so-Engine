@@ -3,7 +3,6 @@
 
 #include "so-so/Log.h"
 
-
 #include "so-so/Events/ApplicationEvent.h"
 #include "so-so/Events/KeyEvent.h"
 #include "so-so/Events/MouseEvent.h"
@@ -11,7 +10,7 @@
 #include "Platform/OpenGL/OpenGLContext.h"
 
 namespace soso {
-
+		
 	static bool s_GLFWInitialized = false;
 
 	static void GLFWErrorCallback(int error, const char* description)
