@@ -1,7 +1,8 @@
 # Directories
 .vs/
-bin/
+/bin/
 bin-int/
+Notes/
 
 #Visual Studio files
 **.sln

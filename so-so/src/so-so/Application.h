@@ -1,15 +1,17 @@
 #pragma once
 
 #include "core.h"
+
 #include "Window.h"
-#include "so-so/LayerStack.h"
-#include "so-so/Events/Event.h"
-#include "so-so/Events/ApplicationEvent.h"
+#include "LayerStack.h"
+#include "Events/Event.h"
+#include "Events/ApplicationEvent.h"
 
 #include "so-so/ImGui/ImGuiLayer.h"
 
-#include "so-so/Renderer/Shader.h"
+#include "Renderer/Shader.h"
 #include "Renderer/Buffer.h"
+#include "Renderer/VertexArray.h"
 
 namespace soso {
 
@@ -18,7 +20,7 @@ namespace soso {
 
 	public:
 		Application();
-		virtual ~Application();
+		virtual ~Application() = default;
 		 
 		void Run();
 
@@ -39,10 +41,10 @@ namespace soso {
 		bool m_Running = true;
 		LayerStack m_LayerStack;
 
-		unsigned int m_VertexArray;
-		std::unique_ptr<Shader> m_Shader;
-		std::unique_ptr<VertexBuffer> m_VertexBuffer;
-		std::unique_ptr<IndexBuffer> m_IndexBuffer;
+		std::shared_ptr<Shader> m_Shader;
+		std::shared_ptr<VertexArray> m_VertexArray;
+		std::shared_ptr<VertexBuffer> m_VertexBuffer;
+		std::shared_ptr<IndexBuffer> m_IndexBuffer;
 
 	private:
 		static Application* s_Instance;
