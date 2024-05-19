@@ -35,8 +35,6 @@ namespace soso {
 		size_t Offset;
 		bool Normalized;
 
-		BufferElement() = default;
-
 		BufferElement(ShaderDataType type, const std::string& name, bool normalized = false)
 			: Name(name), Type(type), Size(GetShaderDataTypeSize(type)), Offset(0), Normalized(normalized)
 		{
@@ -66,12 +64,10 @@ namespace soso {
 
 	};
 
-	/// <summary>
-	/// The idea of this design is to simplify buffer management operations.
-	/// </summary>
 	class BufferLayout {
 	public:
-		BufferLayout() {}
+		BufferLayout() = default;
+		virtual ~BufferLayout() {}
 
 		// Utilizing std::initializer_list in the constructor simplifies the process
 		// of instantiating BufferLayout instances by allowing initialization with a
@@ -119,7 +115,7 @@ namespace soso {
 	/// </summary>
 	class VertexBuffer {
 	public:
-		virtual ~VertexBuffer() {}
+		virtual ~VertexBuffer() = default;
 
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;
@@ -142,7 +138,7 @@ namespace soso {
 	/// </summary>
 	class IndexBuffer {
 	public:
-		virtual ~IndexBuffer() {}
+		virtual ~IndexBuffer() = default;
 
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;
