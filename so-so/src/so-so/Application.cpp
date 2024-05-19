@@ -4,6 +4,7 @@
 #include "so-so/Log.h"
 #include "Input.h"
 
+#include "so-so/Renderer/Renderer.h"
 #include "glad/glad.h"
 
 namespace soso {
@@ -111,14 +112,16 @@ namespace soso {
 
 		while (m_Running) {
 
-			glClearColor(0.1f, 0.1f, 0.1f, 1);
-			glClear(GL_COLOR_BUFFER_BIT);
+			RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
+			RenderCommand::Clear();
 			
-			
-			m_Shader->Bind();
 
-			m_VertexArray->Bind();
-			glDrawElements(GL_TRIANGLES, m_IndexBuffer->GetCount(), GL_UNSIGNED_INT, nullptr);
+			Renderer::BeginScene();
+
+			m_Shader->Bind();
+			Renderer::Submit(m_VertexArray);
+
+			Renderer::EndScene();
 
 			for (Layer* layer : m_LayerStack)
 				layer->OnUpdate();

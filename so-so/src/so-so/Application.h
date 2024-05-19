@@ -17,7 +17,6 @@ namespace soso {
 
 	class SOSO_API Application
 	{
-
 	public:
 		Application();
 		virtual ~Application() = default;
