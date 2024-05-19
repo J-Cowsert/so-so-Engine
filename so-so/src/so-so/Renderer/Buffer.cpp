@@ -9,12 +9,12 @@ namespace soso {
 
 	VertexBuffer* VertexBuffer::Create(float* verticies, uint32_t size) {
 		
-		switch (Renderer::GetRendererAPI()) 
+		switch (Renderer::GetAPI()) 
 		{
-			case RendererAPI::None:
+		case RendererAPI::API::None:
 				SS_CORE_ASSERT(false, "RendererAPI is set to None"); return nullptr;
 
-			case RendererAPI::OpenGL:
+		case RendererAPI::API::OpenGL:
 				return new OpenGLVertexBuffer(verticies, size);
 		}
 
@@ -24,12 +24,12 @@ namespace soso {
 
 	IndexBuffer* IndexBuffer::Create(uint32_t* indices, uint32_t count) {
 
-		switch (Renderer::GetRendererAPI())
+		switch (Renderer::GetAPI())
 		{
-			case RendererAPI::None:
+		case RendererAPI::API::None:
 				SS_CORE_ASSERT(false, "RendererAPI is set to None"); return nullptr;
 
-			case RendererAPI::OpenGL:
+		case RendererAPI::API::OpenGL:
 				return new OpenGLIndexBuffer(indices, count);
 		}
 

@@ -9,12 +9,12 @@ namespace soso {
 
 	VertexArray* VertexArray::Create()
 	{
-		switch (Renderer::GetRendererAPI())
+		switch (Renderer::GetAPI())
 		{
-		case RendererAPI::None:
+		case RendererAPI::API::None:
 			SS_CORE_ASSERT(false, "RendererAPI is set to None"); return nullptr;
 
-		case RendererAPI::OpenGL:
+		case RendererAPI::API::OpenGL:
 			return new OpenGLVertexArray();
 		}
 
