@@ -16,9 +16,9 @@ namespace soso {
 	enum EventCategory {
 		None = 0,
 		EventCategoryApplication = BIT(0),
-		EventCategoryInput = BIT(1),
-		EventCategoryKeyboard = BIT(2),
-		EventCategoryMouse = BIT(3),
+		EventCategoryInput       = BIT(1),
+		EventCategoryKeyboard    = BIT(2),
+		EventCategoryMouse       = BIT(3),
 		EventCategoryMouseButton = BIT(4)
 	};
 
@@ -30,9 +30,9 @@ namespace soso {
 #define EVENT_CLASS_CATEGORY(category) virtual int GetCategoryFlags() const override { return category; }
 
 	class SOSO_API Event {
-
-		friend class EventDispatcher;
 	public:
+
+		virtual ~Event() = default;
 
 		bool Handled = false;
 
