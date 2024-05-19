@@ -1,20 +1,17 @@
 #pragma once
 
-namespace soso {
+#include "RenderCommand.h"
 
-	enum class RendererAPI {
-		None = 0,
-		OpenGL = 1
-	};
+
+namespace soso {
 
 	class Renderer {
 	public:
+		static void BeginScene();
+		static void EndScene();
 
-		inline static RendererAPI GetRendererAPI() { return s_RendererAPI; }
+		static void Submit(const std::shared_ptr<VertexArray>& vertexArray);
 
-	private:
-
-		static RendererAPI s_RendererAPI;
+		inline static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 	};
-
 }
