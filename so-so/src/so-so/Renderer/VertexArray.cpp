@@ -7,7 +7,7 @@
 namespace soso {
 
 
-	VertexArray* VertexArray::Create()
+	Ref<VertexArray> VertexArray::Create()
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -15,7 +15,7 @@ namespace soso {
 			SS_CORE_ASSERT(false, "RendererAPI is set to None"); return nullptr;
 
 		case RendererAPI::API::OpenGL:
-			return new OpenGLVertexArray();
+			return CreateRef<OpenGLVertexArray>();
 		}
 
 		SS_CORE_ASSERT(false, "RendererAPI is undefined");

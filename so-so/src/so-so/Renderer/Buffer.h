@@ -71,7 +71,7 @@ namespace soso {
 
 		// Utilizing std::initializer_list in the constructor simplifies the process
 		// of instantiating BufferLayout instances by allowing initialization with a
-		// list of BufferElement objects directly, enhancing code readability.
+		// list of BufferElement objects directly.
 		BufferLayout(const std::initializer_list<BufferElement>& elements)
 			: m_Elements(elements)
 		{

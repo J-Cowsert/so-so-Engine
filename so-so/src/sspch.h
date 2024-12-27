@@ -10,10 +10,14 @@
 #include <vector>
 #include <sstream>
 #include <string>
+#include <array>
+#include <vector>
 #include <unordered_map>
 #include <unordered_set>
 
+#include "so-so/core.h"
 #include "so-so/Log.h"
+
 
 #ifdef SS_PLATFORM_WINDOWS
 	#include <Windows.h>

@@ -10,7 +10,7 @@ workspace "so-so"
 	}
 
 
-outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
+Outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
 -- -- Include directories relative to root folder (solution directory)
 -- IncludeDir = {}
@@ -32,8 +32,8 @@ project "so-so"
 	cppdialect "C++17"
 	staticruntime "on"
 
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
-	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+	targetdir ("bin/" .. Outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. Outputdir .. "/%{prj.name}")
 
 	pchheader "sspch.h"
 	pchsource "so-so/src/sspch.cpp"
@@ -99,8 +99,8 @@ project "Sandbox"
 	cppdialect "C++17"
 	staticruntime "on"
 
-	targetdir ("bin/" .. outputdir .. "/%{prj.name}")
-	objdir ("bin-int/" .. outputdir .. "/%{prj.name}")
+	targetdir ("bin/" .. Outputdir .. "/%{prj.name}")
+	objdir ("bin-int/" .. Outputdir .. "/%{prj.name}")
 
 	files
 	{
@@ -112,7 +112,8 @@ project "Sandbox"
 	{
 		"so-so/vendor/spdlog/include",
 		"so-so/src",
-		"so-so/vendor"
+		"so-so/vendor",
+		"so-so/vendor/glm"
 	}
 
 	links 
