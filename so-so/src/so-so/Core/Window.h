@@ -2,7 +2,7 @@
 
 #include "sspch.h"
 
-#include "so-so/core.h"
+#include "so-so/Core/core.h"
 #include "so-so/Events/Event.h"
 
 

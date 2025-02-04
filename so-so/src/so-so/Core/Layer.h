@@ -1,7 +1,8 @@
 #pragma once
 
 #include "core.h"
-#include "Events/Event.h"
+#include "Timestep.h"
+#include "../Events/Event.h"
 
 namespace soso {
 
@@ -13,7 +14,7 @@ namespace soso {
 
 		virtual void OnAttach() {}
 		virtual void OnDetach() {}
-		virtual void OnUpdate() {}
+		virtual void OnUpdate(Timestep ts) {}
 		virtual void OnImGuiRender() {}
 		virtual void OnEvent(Event& event) {}
 

@@ -1,6 +1,6 @@
 #pragma once
 
-#include "so-so/core.h"
+#include "so-so/Core/core.h"
 
 namespace soso {
 
