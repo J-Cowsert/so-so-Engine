@@ -129,7 +129,7 @@ namespace soso {
 		/// <param name="vertices">A pointer to the array of vertex data.</param>
 		/// <param name="size">The size of the vertex data array in bytes.</param>
 		/// <returns>A pointer to the created VertexBuffer instance.</returns>
-		static VertexBuffer* Create(float* verticies, uint32_t size);
+		static std::shared_ptr<VertexBuffer> Create(float* verticies, uint32_t size);
 	};
 
 	/// <summary>
@@ -151,6 +151,6 @@ namespace soso {
 		/// <param name="indices">A pointer to the array of index data.</param>
 		/// <param name="count">The number of indices in the array.</param>
 		/// <returns>A pointer to the created IndexBuffer instance.</returns>
-		static IndexBuffer* Create(uint32_t* indices, uint32_t count);
+		static std::shared_ptr<IndexBuffer> Create(uint32_t* indices, uint32_t count);
 	};
 }

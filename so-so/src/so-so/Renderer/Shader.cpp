@@ -7,7 +7,7 @@
 namespace soso {
 
 
-	Ref<Shader> Shader::Create(const std::string& vertexSrc, const std::string& fragmentSrc)
+	std::shared_ptr<Shader> Shader::Create(const std::string& vertexSrc, const std::string& fragmentSrc)
 	{
 		switch (Renderer::GetAPI())
 		{
@@ -15,7 +15,7 @@ namespace soso {
 			SS_CORE_ASSERT(false, "RendererAPI is set to None"); return nullptr;
 
 		case RendererAPI::API::OpenGL:
-			return CreateRef<OpenGLShader>(vertexSrc, fragmentSrc);
+			return std::make_shared<OpenGLShader>(vertexSrc, fragmentSrc);
 		}
 
 		SS_CORE_ASSERT(false, "RendererAPI is undefined");
