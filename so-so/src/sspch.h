@@ -15,8 +15,8 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "so-so/core.h"
-#include "so-so/Log.h"
+#include "so-so/Core/core.h"
+#include "so-so/Core/Log.h"
 
 
 #ifdef SS_PLATFORM_WINDOWS
