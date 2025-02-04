@@ -1,7 +1,7 @@
 #include "sspch.h"
 #include "WindowsWindow.h"
 
-#include "so-so/Log.h"
+#include "so-so/Core/Log.h"
 
 #include "so-so/Events/ApplicationEvent.h"
 #include "so-so/Events/KeyEvent.h"

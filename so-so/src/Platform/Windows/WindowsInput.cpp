@@ -1,7 +1,7 @@
 #include "sspch.h"
 #include "WindowsInput.h"
 
-#include "so-so/Application.h"
+#include "so-so/Core/Application.h"
 #include <GLFW/glfw3.h>
 
 namespace soso {
