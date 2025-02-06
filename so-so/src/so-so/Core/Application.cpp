@@ -45,13 +45,15 @@ namespace soso {
 		dispatcher.Dispatch<WindowResizeEvent>(BIND_EVENT_FN(Application::OnWindowResize));
 
 		for (auto it = m_LayerStack.end(); it != m_LayerStack.begin();) {
-			(*--it)->OnEvent(e);
 			if (e.Handled)
 				break;
+			(*--it)->OnEvent(e);
 		}
 	}
 
 	void Application::Run() {
+
+		soso::Renderer::Init();
 
 		while (m_Running) {
 
