@@ -1,119 +1,167 @@
 #include "sspch.h"
 #include "OpenGLShader.h"
-#include "glad/glad.h"
 #include <glm/gtc/type_ptr.hpp>
 
 namespace soso {
 
-	OpenGLShader::OpenGLShader(const std::string& vertexSource, const std::string& fragmentSource) {
+	namespace Utils {
 
-		// Create empty handle
-		GLuint vertexShader = glCreateShader(GL_VERTEX_SHADER);
+		static GLenum ShaderTypeFromString(const std::string& type) {
 
-		// Send vertex shader source code to OpenGL
-		// Reminder: std::string's .c_str is NULL character terminated
-		const GLchar* source = vertexSource.c_str();
-		glShaderSource(vertexShader, 1, &source, 0);
+			if (type == "vertex")
+				return GL_VERTEX_SHADER;
+			if (type == "fragment" || type == "pixel")
+				return GL_FRAGMENT_SHADER;
 
-		// Compile shader and verify status
-		glCompileShader(vertexShader);
-
-		GLint isCompiled = 0;
-		glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &isCompiled);
-
-		if (isCompiled == GL_FALSE) {
-
-			GLint maxLength = 0;
-			glGetShaderiv(vertexShader, GL_INFO_LOG_LENGTH, &maxLength);
-
-			// The maxLength includes the NULL character
-			std::vector<GLchar> infoLog(maxLength);
-			glGetShaderInfoLog(vertexShader, maxLength, &maxLength, &infoLog[0]);
-
-			// We don't need the shader anymore.
-			glDeleteShader(vertexShader);
-
-			SS_CORE_ERROR("{0}", infoLog.data());
-			SS_CORE_ASSERT(false, "Vertex shader compilation failed.");
-			return;
+			SS_CORE_ASSERT(false, "Unknown shader type");
+			return 0;
 		}
 
-		// Create empty handle
-		GLuint fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
+		static const char* GLShaderStageToString(GLenum stage) {
 
-		// Send fragment shader source code to OpenGL
-		// Reminder: std::string's .c_str is NULL character terminated
-		source = fragmentSource.c_str();
-		glShaderSource(fragmentShader, 1, &source, 0);
+			switch (stage) {
+				case GL_VERTEX_SHADER:   return "GL_VERTEX_SHADER";
+				case GL_FRAGMENT_SHADER: return "GL_FRAGMENT_SHADER";
+			}
+			SS_CORE_ASSERT(false, "");
+			return nullptr;
+		}
+	}
 
-		// Compile shader and verify status
-		glCompileShader(fragmentShader);
+	OpenGLShader::OpenGLShader(const std::string& filepath) {
 
-		glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &isCompiled);
+		std::string source = ReadFile(filepath);
+		auto sources = PreProcess(source);
+		Compile(sources);
 
-		if (isCompiled == GL_FALSE) {
+		auto lastSlash = filepath.find_last_of("/\\");
+		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
+		auto lastDot = filepath.rfind('.');
+		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
 
-			GLint maxLength = 0;
-			glGetShaderiv(fragmentShader, GL_INFO_LOG_LENGTH, &maxLength);
+		m_Name = filepath.substr(lastSlash, count);
+	}
 
-			// The maxLength includes the NULL character
-			std::vector<GLchar> infoLog(maxLength);
-			glGetShaderInfoLog(fragmentShader, maxLength, &maxLength, &infoLog[0]);
+	OpenGLShader::OpenGLShader(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource)
+		: m_Name(name) {
 
-			// We don't need the shaders anymore.
-			glDeleteShader(fragmentShader);
-			glDeleteShader(vertexShader);
+		std::unordered_map<GLenum, std::string> sources;
+		sources[GL_VERTEX_SHADER] = vertexSource;
+		sources[GL_FRAGMENT_SHADER] = fragmentSource;
 
-			SS_CORE_ERROR("{0}", infoLog.data());
-			SS_CORE_ASSERT(false, "Fragment shader compilation failed.");
-			return;
+		Compile(sources);
+	}
+
+	OpenGLShader::~OpenGLShader() {
+		glDeleteProgram(m_RendererID);
+	}
+
+	std::string OpenGLShader::ReadFile(const std::string& filepath) {
+
+		std::string result;
+		std::ifstream in(filepath, std::ios::in | std::ios::binary);
+		if (in) {
+			in.seekg(0, std::ios::end);
+			size_t size = in.tellg();
+			if (size != -1) {
+				result.resize(size);
+				in.seekg(0, std::ios::beg);
+				in.read(&result[0], size);
+			}
+			else {
+				SS_CORE_ERROR("Could not read from file '{0}'", filepath);
+			}
+		}
+		else {
+			SS_CORE_ERROR("Could not open file '{0}'", filepath);
 		}
 
-		// Both shaders compiled successfully
-		// Link them into a program
+		return result;
+	}
 
-		// Get program obj
-		m_RendererID = glCreateProgram();
-		GLuint program = m_RendererID;
+	std::unordered_map<GLenum, std::string> OpenGLShader::PreProcess(const std::string& source) {
 
-		// Attach shaders
-		glAttachShader(program, vertexShader);
-		glAttachShader(program, fragmentShader);
+		std::unordered_map<GLenum, std::string> shaderSources;
 
-		// Link program
+		const char* typeToken = "#type";
+		size_t typeTokenLength = strlen(typeToken);
+		size_t pos = source.find(typeToken, 0); //Start of shader type declaration line
+		while (pos != std::string::npos) {
+			size_t eol = source.find_first_of("\r\n", pos); //End of shader type declaration line
+			SS_CORE_ASSERT(eol != std::string::npos, "Syntax error");
+			size_t begin = pos + typeTokenLength + 1; //Start of shader type name (after "#type " keyword)
+			std::string type = source.substr(begin, eol - begin);
+			SS_CORE_ASSERT(Utils::ShaderTypeFromString(type), "Invalid shader type specified");
+
+			size_t nextLinePos = source.find_first_not_of("\r\n", eol); //Start of shader code after shader type declaration line
+			SS_CORE_ASSERT(nextLinePos != std::string::npos, "Syntax error");
+			pos = source.find(typeToken, nextLinePos); //Start of next shader type declaration line
+
+			shaderSources[Utils::ShaderTypeFromString(type)] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
+		}
+
+		return shaderSources;
+	}
+
+	void OpenGLShader::Compile(std::unordered_map<GLenum, std::string> shaderSources) {
+
+		GLuint program = glCreateProgram();
+		std::vector<GLenum> shaderIDs(shaderSources.size());
+
+		for (auto&& [type, source] : shaderSources) {
+
+			GLuint shader = glCreateShader(type);
+
+			const GLchar* shaderSource = source.c_str();
+			glShaderSource(shader, 1, &shaderSource, 0);
+			glCompileShader(shader);
+
+			GLint isCompiled;
+			glGetShaderiv(shader, GL_COMPILE_STATUS, &isCompiled);
+																							
+			if (isCompiled == GL_FALSE) {
+
+				GLint maxLength;
+				glGetShaderiv(shader, GL_INFO_LOG_LENGTH, &maxLength);
+				std::vector<GLchar> infoLog(maxLength);
+				glGetShaderInfoLog(shader, maxLength, &maxLength, &infoLog[0]);
+				glDeleteShader(shader);
+
+				SS_CORE_ERROR("{0}", infoLog.data());
+				SS_CORE_ASSERT(false, "{0} compilation failed.", Utils::GLShaderStageToString(type));
+				return;
+			}
+
+			glAttachShader(program, shader);
+			shaderIDs.push_back(shader);
+		}
+
 		glLinkProgram(program);
-
-		// Verify linking
-		GLint isLinked = 0;
+		GLint isLinked;
 		glGetProgramiv(program, GL_LINK_STATUS, (int*)&isLinked);
 
 		if (isLinked == GL_FALSE) {
 
 			GLint maxLength = 0;
 			glGetProgramiv(program, GL_INFO_LOG_LENGTH, &maxLength);
-
-			// The maxLength includes the NULL character
 			std::vector<GLchar> infoLog(maxLength);
 			glGetProgramInfoLog(program, maxLength, &maxLength, &infoLog[0]);
-
-			// We don't need the program anymore.
 			glDeleteProgram(program);
-			// Don't leak shaders either.
-			glDeleteShader(vertexShader);
-			glDeleteShader(fragmentShader);
+			
+			for (auto ID : shaderIDs) {
+				glDeleteShader(ID);
+			}
 
 			SS_CORE_ERROR("{0}", infoLog.data());
 			SS_CORE_ASSERT(false, "Shader link failed.");
 			return;
 		}
 
-		// Detach shaders after successful link
-		glDetachShader(program, vertexShader);
-		glDetachShader(program, fragmentShader);
-	}
+		for (auto ID : shaderIDs) {
+			glDetachShader(program, ID);
+		}
 
-	OpenGLShader::~OpenGLShader() {
-		glDeleteProgram(m_RendererID);
+		m_RendererID = program;
 	}
 
 	void OpenGLShader::Bind() const {
@@ -136,8 +184,8 @@ namespace soso {
 		UploadUniformInt(name, value);
 	}
 
-	void OpenGLShader::SetMat4(const std::string& name, const glm::mat4& value) {
-		UploadUniformMat4(name, value);
+	void OpenGLShader::SetMat4(const std::string& name, const glm::mat4& matrix) {
+		UploadUniformMat4(name, matrix);
 	}
 
 	void OpenGLShader::UploadUniformFloat(const std::string& name, float value) {
