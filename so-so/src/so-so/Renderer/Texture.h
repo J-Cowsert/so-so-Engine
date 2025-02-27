@@ -45,4 +45,9 @@ namespace soso {
 	public:
 		static std::shared_ptr<Texture2D> Create(const TextureProvision& provision, Buffer data = Buffer());
 	};
+
+	class TextureCube : public Texture {
+	public:
+		static std::shared_ptr<TextureCube> Create(const TextureProvision& provision, const std::array<Buffer, 6>& data);
+	};
 }
