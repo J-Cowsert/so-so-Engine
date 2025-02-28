@@ -1,8 +1,12 @@
 #pragma once
 
 #include "core.h"
-#include "spdlog/spdlog.h"
-#include "spdlog/fmt/ostr.h"
+
+// Ignore warnings from spdlog's external libraries
+#pragma warning(push, 0)
+#include <spdlog/spdlog.h>
+#include <spdlog/fmt/ostr.h>
+#pragma warning(pop)
 
 namespace soso {
 
