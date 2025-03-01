@@ -5,9 +5,16 @@
 namespace soso {
 
 	class RenderCommand {
+	public:
+		using DepthFunction = RendererAPI::DepthFunction;
+
 	public: 
 		static void Init() {
 			s_RendererAPI->Init();
+		}
+
+		static void SetDepthFunction(DepthFunction func) {
+			s_RendererAPI->SetDepthFunction(func);
 		}
 
 		static void EnableDepthTest() {
@@ -32,6 +39,10 @@ namespace soso {
 
 		static void DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray) {
 			s_RendererAPI->DrawIndexed(vertexArray);
+		}
+
+		static void DrawArrays(const std::shared_ptr<VertexArray>& vertexArray) {
+			s_RendererAPI->DrawArrays(vertexArray);
 		}
 
 		static void DrawLines() {
