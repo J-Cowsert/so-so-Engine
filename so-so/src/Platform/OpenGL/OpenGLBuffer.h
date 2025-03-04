@@ -7,6 +7,7 @@ namespace soso {
 	class OpenGLVertexBuffer : public VertexBuffer {
 	public:
 
+		OpenGLVertexBuffer(uint32_t size);
 		OpenGLVertexBuffer(float* indicies, uint32_t size);
 		virtual ~OpenGLVertexBuffer();
 

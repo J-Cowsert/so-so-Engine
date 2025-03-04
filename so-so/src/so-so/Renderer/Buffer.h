@@ -89,8 +89,6 @@ namespace soso {
 
 	private:
 
-		// Calculates the memory offsets for each buffer element and computes
-		// the total stride of the buffer layout.
 		void CalculateOffsetsAndStride() {
 			
 			size_t offset = 0;
@@ -108,11 +106,6 @@ namespace soso {
 	};
 
 
-
-	/// <summary>
-	/// Abstract base class for vertex buffers, providing an interface for managing
-	/// vertex data used in graphics rendering.
-	/// </summary>
 	class VertexBuffer {
 	public:
 		virtual ~VertexBuffer() = default;
@@ -123,19 +116,10 @@ namespace soso {
 		virtual const BufferLayout& GetLayout() const = 0;
 		virtual void SetLayout(const BufferLayout& layout) = 0;
 
-		/// <summary>
-		/// Creates a concrete instance of VertexBuffer with the provided vertex data.
-		/// </summary>
-		/// <param name="vertices">A pointer to the array of vertex data.</param>
-		/// <param name="size">The size of the vertex data array in bytes.</param>
-		/// <returns>A pointer to the created VertexBuffer instance.</returns>
+		static std::shared_ptr<VertexBuffer> Create(uint32_t size);
 		static std::shared_ptr<VertexBuffer> Create(float* verticies, uint32_t size);
 	};
 
-	/// <summary>
-	/// Abstract base class for index buffers, providing an interface for managing
-	/// index data used in graphics rendering.
-	/// </summary>
 	class IndexBuffer {
 	public:
 		virtual ~IndexBuffer() = default;
@@ -145,12 +129,7 @@ namespace soso {
 
 		virtual uint32_t GetCount() const = 0;
 
-		/// <summary>
-		/// Creates a concrete instance of IndexBuffer with the provided index data.
-		/// </summary>
-		/// <param name="indices">A pointer to the array of index data.</param>
-		/// <param name="count">The number of indices in the array.</param>
-		/// <returns>A pointer to the created IndexBuffer instance.</returns>
+		
 		static std::shared_ptr<IndexBuffer> Create(uint32_t* indices, uint32_t count);
 	};
 }
