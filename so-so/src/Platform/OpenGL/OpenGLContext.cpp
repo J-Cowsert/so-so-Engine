@@ -18,10 +18,9 @@ void soso::OpenGLContext::Init() {
 	SS_CORE_ASSERT(status, "Failed to initialize Glad.");
 
 	SS_CORE_INFO("OpenGL Info:");
-	//SS_CORE_INFO("  Vendor: {0}",   GL_VENDOR);
-	//SS_CORE_INFO("  Renderer: {0}", GL_RENDERER);
-	//SS_CORE_INFO("  Version: {0}",  GL_VERSION);
-	//glGetString(); <- static assert failing ->
+	SS_CORE_INFO("  Vendor: {0}", (char *)glGetString(GL_VENDOR));
+	SS_CORE_INFO("  Renderer: {0}", (char*)glGetString(GL_RENDERER));
+	SS_CORE_INFO("  Version: {0}", (char*)glGetString(GL_VERSION));
 }
 
 void soso::OpenGLContext::SwapBuffers() {
