@@ -8,5 +8,8 @@ namespace soso {
 	public:
 
 		static std::shared_ptr<Texture2D> LoadTexture2D(const std::filesystem::path& path);
+		static std::shared_ptr<TextureCube> LoadTextureCube(const std::array<std::filesystem::path, 6>& paths);
+		static std::shared_ptr<TextureCube> LoadTextureCube(std::initializer_list<std::filesystem::path> paths);
+
 	};
 }
