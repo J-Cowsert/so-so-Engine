@@ -9,6 +9,7 @@ namespace soso {
 			switch (format) {
 				case ImageFormat::RGB8:  return GL_RGB;
 				case ImageFormat::RGBA8: return GL_RGBA;
+				case ImageFormat::RGBA32F: return GL_RGBA;
 			}
 
 			SS_CORE_ASSERT(false, "");
@@ -19,6 +20,7 @@ namespace soso {
 			switch (format) {
 				case ImageFormat::RGB8:  return GL_RGB8;
 				case ImageFormat::RGBA8: return GL_RGBA8;
+				case ImageFormat::RGBA32F: return GL_RGBA32F;
 			}
 
 			SS_CORE_ASSERT(false, "");
