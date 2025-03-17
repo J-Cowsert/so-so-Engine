@@ -6,21 +6,17 @@
 #include "Shader.h"
 #include <string>
 #include <vector>
-#include <thread>
-#include <atomic>
-
-#include <glm/ext.hpp>
 
 
-// Temporary slop code
+// Temporary code
 
 namespace soso {
 
     class Mesh {
         
         struct MeshData {
-            std::vector<float> m_TempVertices;
-            std::vector<uint32_t> m_TempIndices;
+            std::vector<float> TempVertices;
+            std::vector<uint32_t> TempIndices;
         };
 
     public:

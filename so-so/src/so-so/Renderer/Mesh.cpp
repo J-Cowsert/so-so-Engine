@@ -39,39 +39,39 @@ namespace soso {
                     std::to_string(index.texcoord_index);
 
                 if (uniqueVertices.count(key)) {
-                    m_MeshData.m_TempIndices.push_back(uniqueVertices[key]);
+                    m_MeshData.TempIndices.push_back(uniqueVertices[key]);
                     continue;
                 }
 
-                uniqueVertices[key] = static_cast<uint32_t>(m_MeshData.m_TempVertices.size() / 8);
+                uniqueVertices[key] = static_cast<uint32_t>(m_MeshData.TempVertices.size() / 8);
 
                 // Position
-                m_MeshData.m_TempVertices.push_back(attrib.vertices[3 * index.vertex_index + 0]);
-                m_MeshData.m_TempVertices.push_back(attrib.vertices[3 * index.vertex_index + 1]);
-                m_MeshData.m_TempVertices.push_back(attrib.vertices[3 * index.vertex_index + 2]);
+                m_MeshData.TempVertices.push_back(attrib.vertices[3 * index.vertex_index + 0]);
+                m_MeshData.TempVertices.push_back(attrib.vertices[3 * index.vertex_index + 1]);
+                m_MeshData.TempVertices.push_back(attrib.vertices[3 * index.vertex_index + 2]);
 
                 // Normal
                 if (index.normal_index >= 0) {
-                    m_MeshData.m_TempVertices.push_back(attrib.normals[3 * index.normal_index + 0]);
-                    m_MeshData.m_TempVertices.push_back(attrib.normals[3 * index.normal_index + 1]);
-                    m_MeshData.m_TempVertices.push_back(attrib.normals[3 * index.normal_index + 2]);
+                    m_MeshData.TempVertices.push_back(attrib.normals[3 * index.normal_index + 0]);
+                    m_MeshData.TempVertices.push_back(attrib.normals[3 * index.normal_index + 1]);
+                    m_MeshData.TempVertices.push_back(attrib.normals[3 * index.normal_index + 2]);
                 }
                 else {
-                    m_MeshData.m_TempVertices.push_back(0.0f);
-                    m_MeshData.m_TempVertices.push_back(0.0f);
-                    m_MeshData.m_TempVertices.push_back(0.0f);
+                    m_MeshData.TempVertices.push_back(0.0f);
+                    m_MeshData.TempVertices.push_back(0.0f);
+                    m_MeshData.TempVertices.push_back(0.0f);
                 }
 
                 if (index.texcoord_index >= 0) {
-                    m_MeshData.m_TempVertices.push_back(attrib.texcoords[2 * index.texcoord_index + 0]);
-                    m_MeshData.m_TempVertices.push_back(attrib.texcoords[2 * index.texcoord_index + 1]);
+                    m_MeshData.TempVertices.push_back(attrib.texcoords[2 * index.texcoord_index + 0]);
+                    m_MeshData.TempVertices.push_back(attrib.texcoords[2 * index.texcoord_index + 1]);
                 }
                 else {
-                    m_MeshData.m_TempVertices.push_back(0.0f);
-                    m_MeshData.m_TempVertices.push_back(0.0f);
+                    m_MeshData.TempVertices.push_back(0.0f);
+                    m_MeshData.TempVertices.push_back(0.0f);
                 }
 
-                m_MeshData.m_TempIndices.push_back(uniqueVertices[key]);
+                m_MeshData.TempIndices.push_back(uniqueVertices[key]);
             }
         }
     }

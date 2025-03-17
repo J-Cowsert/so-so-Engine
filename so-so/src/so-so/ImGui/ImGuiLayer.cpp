@@ -24,7 +24,7 @@ namespace soso {
 	}
 
 	void ImGuiLayer::OnAttach() {
-		// Setup Dear ImGui context
+		
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
