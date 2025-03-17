@@ -6,6 +6,12 @@
 
 namespace soso {
 
+	enum class ShaderType {
+		None = 0,
+		Vertex,
+		Fragment
+	};
+
 	class OpenGLShader : public Shader {
 	public:
 		OpenGLShader(const std::string& filepath);
@@ -25,14 +31,19 @@ namespace soso {
 		void UploadUniformInt(const std::string& name, int value);
 		void UploadUniformMat4(const std::string& name, const glm::mat4& value);
 
+		const std::string& GetName() const override { return m_Name; }
+
 	private:
 		std::string ReadFile(const std::string& filepath);
-		std::unordered_map<GLenum, std::string> PreProcess(const std::string& source);
-		void Compile(std::unordered_map<GLenum, std::string> shaderSources);
+		std::unordered_map<ShaderType, std::string> PreProcess(const std::string& source);
+		void Compile(std::unordered_map<ShaderType, std::string> shaderSources);
 
 	private:
+		
+
 		uint32_t m_RendererID;
 		std::string m_Name;
-	};
 
+		std::unordered_map<ShaderType, std::string> m_ShaderSources;
+	};
 }

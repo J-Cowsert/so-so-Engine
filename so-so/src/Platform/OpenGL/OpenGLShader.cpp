@@ -6,7 +6,7 @@ namespace soso {
 
 	namespace Utils {
 
-		static GLenum ShaderTypeFromString(const std::string& type) {
+		static GLenum StringToGLShaderType(const std::string& type) {
 
 			if (type == "vertex")
 				return GL_VERTEX_SHADER;
@@ -15,6 +15,39 @@ namespace soso {
 
 			SS_CORE_ASSERT(false, "Unknown shader type");
 			return 0;
+		} 
+
+		static ShaderType StringToSosoShaderType(const std::string& type) {
+
+			if (type == "vertex")
+				return ShaderType::Vertex;
+			if (type == "fragment" || type == "pixel")
+				return ShaderType::Fragment;
+
+			SS_CORE_ASSERT(false, "Unknown shader type");
+
+			return ShaderType::None;
+		}
+
+		static GLenum SosoShaderTypeToGLShaderType(const ShaderType type) {
+
+			switch (type) {
+				case ShaderType::Vertex:   return GL_VERTEX_SHADER;
+				case ShaderType::Fragment: return GL_FRAGMENT_SHADER;
+			}
+
+			SS_CORE_ASSERT(false, "Unknown shader type");
+			return 0;
+		}
+
+		static ShaderType GLShaderTypeToSosoShaderType(GLenum type) {
+
+			switch (type) {
+				case GL_VERTEX_SHADER:   return ShaderType::Vertex;
+				case GL_FRAGMENT_SHADER: return ShaderType::Fragment;
+			}
+			SS_CORE_ASSERT(false, "");
+			return ShaderType::None;
 		}
 
 		static const char* GLShaderStageToString(GLenum stage) {
@@ -26,6 +59,7 @@ namespace soso {
 			SS_CORE_ASSERT(false, "");
 			return nullptr;
 		}
+
 	}
 
 	OpenGLShader::OpenGLShader(const std::string& filepath) {
@@ -45,9 +79,9 @@ namespace soso {
 	OpenGLShader::OpenGLShader(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource)
 		: m_Name(name) {
 
-		std::unordered_map<GLenum, std::string> sources;
-		sources[GL_VERTEX_SHADER] = vertexSource;
-		sources[GL_FRAGMENT_SHADER] = fragmentSource;
+		std::unordered_map<ShaderType, std::string> sources;
+		sources[ShaderType::Vertex] = vertexSource;
+		sources[ShaderType::Fragment] = fragmentSource;
 
 		Compile(sources);
 	}
@@ -79,9 +113,9 @@ namespace soso {
 		return result;
 	}
 
-	std::unordered_map<GLenum, std::string> OpenGLShader::PreProcess(const std::string& source) {
+	std::unordered_map<ShaderType, std::string> OpenGLShader::PreProcess(const std::string& source) {
 
-		std::unordered_map<GLenum, std::string> shaderSources;
+		std::unordered_map<ShaderType, std::string> shaderSources;
 
 		const char* typeToken = "#type";
 		size_t typeTokenLength = strlen(typeToken);
@@ -91,26 +125,27 @@ namespace soso {
 			SS_CORE_ASSERT(eol != std::string::npos, "Syntax error");
 			size_t begin = pos + typeTokenLength + 1; //Start of shader type name (after "#type " keyword)
 			std::string type = source.substr(begin, eol - begin);
-			SS_CORE_ASSERT(Utils::ShaderTypeFromString(type), "Invalid shader type specified");
+			SS_CORE_ASSERT(Utils::StringToGLShaderType(type), "Invalid shader type specified");
 
 			size_t nextLinePos = source.find_first_not_of("\r\n", eol); //Start of shader code after shader type declaration line
 			SS_CORE_ASSERT(nextLinePos != std::string::npos, "Syntax error");
 			pos = source.find(typeToken, nextLinePos); //Start of next shader type declaration line
 
-			shaderSources[Utils::ShaderTypeFromString(type)] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
+			shaderSources[Utils::StringToSosoShaderType(type)] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
 		}
 
 		return shaderSources;
 	}
 
-	void OpenGLShader::Compile(std::unordered_map<GLenum, std::string> shaderSources) {
+	void OpenGLShader::Compile(std::unordered_map<ShaderType, std::string> shaderSources) {
 
 		GLuint program = glCreateProgram();
-		std::vector<GLenum> shaderIDs(shaderSources.size());
+		std::vector<GLenum> shaderIDs;
+		shaderIDs.reserve(shaderSources.size());
 
 		for (auto&& [type, source] : shaderSources) {
 
-			GLuint shader = glCreateShader(type);
+			GLuint shader = glCreateShader(Utils::SosoShaderTypeToGLShaderType(type));
 
 			const GLchar* shaderSource = source.c_str();
 			glShaderSource(shader, 1, &shaderSource, 0);
@@ -128,12 +163,12 @@ namespace soso {
 				glDeleteShader(shader);
 
 				SS_CORE_ERROR("{0}", infoLog.data());
-				SS_CORE_ASSERT(false, "{0} compilation failed.", Utils::GLShaderStageToString(type));
+				//SS_CORE_ASSERT(false, "{0} compilation failed.", type);
 				return;
 			}
 
 			glAttachShader(program, shader);
-			shaderIDs.push_back(shader);
+			shaderIDs.emplace_back(shader);
 		}
 
 		glLinkProgram(program);
