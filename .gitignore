@@ -1,7 +1,10 @@
 # Directories
 .vs/
-/bin/
+
+**/bin/
+!vendor/premake/bin/
 bin-int/
+
 Notes/
 
 #Visual Studio files
