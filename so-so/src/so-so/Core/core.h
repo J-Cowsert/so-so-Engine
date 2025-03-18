@@ -3,19 +3,12 @@
 #include <memory>
 
 #ifdef SS_PLATFORM_WINDOWS
-#if SS_DYNAMIC_LINKING
-
-	#ifdef SS_BUILD_DLL
-		#define SOSO_API __declspec(dllexport)
-	#else
-		#define SOSO_API __declspec(dllimport)
-	#endif // SS_BUILD
-
+	#define SS_DEBUGBREAK() __debugbreak()
+#elif defined(SS_PLATFORM_LINUX)
+	#include <signal.h>
+	#define SS_DEBUGBREAK() raise(SIGTRAP)
 #else
-	#define SOSO_API
-#endif // SS_DYNAMIC_LINKING
-#else
-#error soso only supports Windows :(
+#error "Platform doesn't support debugbreak yet"
 #endif // SS_PLATFORM_WINDOWS
 
 #ifdef SS_DEBUG
@@ -23,8 +16,8 @@
 #endif
 
 #ifdef SS_CORE_ASSERTS
-	#define SS_ASSERT(x, ...) { if(!(x)) { SS_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } }
-	#define SS_CORE_ASSERT(x, ...) { if(!(x)) { SS_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); __debugbreak(); } }
+	#define SS_ASSERT(x, ...) { if(!(x)) { SS_ERROR("Assertion Failed: {0}", __VA_ARGS__); SS_DEBUGBREAK(); } }
+	#define SS_CORE_ASSERT(x, ...) { if(!(x)) { SS_CORE_ERROR("Assertion Failed: {0}", __VA_ARGS__); SS_DEBUGBREAK(); } }
 #else
 	#define SS_ASSERT(x, ...)
 	#define SS_CORE_ASSERT(x, ...)

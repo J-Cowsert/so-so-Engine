@@ -1,5 +1,8 @@
 #pragma once
 
+#include "so-so/Core/core.h"
+#include "so-so/Core/Application.h"
+
 #ifdef SS_PLATFORM_WINDOWS
 
 extern  soso::Application* soso::CreateApplication();
@@ -13,4 +16,4 @@ int main(int argc, char** argv) {
 	app->Run();
 	delete app;
 }
-#endif // SS_PLATFORM_WINDOWS
+#endif

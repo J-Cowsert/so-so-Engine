@@ -7,7 +7,7 @@
 
 namespace soso {
 
-	class SOSO_API LayerStack {
+	class LayerStack {
 
 	public:
 		LayerStack() = default;

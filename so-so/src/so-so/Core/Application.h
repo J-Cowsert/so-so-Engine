@@ -1,18 +1,18 @@
 #pragma once
 
 #include "core.h"
-#include "Timestep.h"
 #include "Window.h"
 #include "LayerStack.h"
 #include "../Events/Event.h"
 #include "../Events/ApplicationEvent.h"
 
+#include "Timestep.h"
 #include "so-so/ImGui/ImGuiLayer.h"
 
 
 namespace soso {
 
-	class SOSO_API Application
+	class Application
 	{
 	public:
 		Application();

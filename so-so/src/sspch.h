@@ -1,5 +1,9 @@
 #pragma once
 
+#ifdef SS_PLATFORM_WINDOWS
+	#include <Windows.h>
+#endif // SS_PLATFORM_WINDOWS
+
 #include <iostream>
 #include <memory>
 #include <utility> 
@@ -16,7 +20,3 @@
 #include "so-so/Core/core.h"
 #include "so-so/Core/Log.h"
 
-
-#ifdef SS_PLATFORM_WINDOWS
-	#include <Windows.h>
-#endif // SS_PLATFORM_WINDOWS

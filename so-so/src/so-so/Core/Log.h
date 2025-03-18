@@ -10,7 +10,7 @@
 
 namespace soso {
 
-	class SOSO_API Log
+	class Log
 	{
 	public:
 		static void Init();

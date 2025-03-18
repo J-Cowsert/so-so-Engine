@@ -22,7 +22,7 @@ namespace soso {
 	};
 
 	// Interface 
-	class SOSO_API Window {
+	class Window {
 
 	public:
 		using EventCallbackFn = std::function<void(Event&)>;
