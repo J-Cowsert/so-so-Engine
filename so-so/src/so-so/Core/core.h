@@ -2,13 +2,17 @@
 
 #include <memory>
 
+
+#if !defined(SS_PLATFORM_WINDOWS) && !defined(SS_PLATFORM_LINUX)
+	#error Platform not supported
+#endif
+
 #ifdef SS_PLATFORM_WINDOWS
 	#define SS_DEBUGBREAK() __debugbreak()
+
 #elif defined(SS_PLATFORM_LINUX)
 	#include <signal.h>
 	#define SS_DEBUGBREAK() raise(SIGTRAP)
-#else
-#error "Platform doesn't support debugbreak yet"
 #endif // SS_PLATFORM_WINDOWS
 
 #ifdef SS_DEBUG
