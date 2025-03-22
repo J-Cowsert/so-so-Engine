@@ -3,10 +3,8 @@
 #include "core.h"
 #include "Window.h"
 #include "LayerStack.h"
-#include "../Events/Event.h"
-#include "../Events/ApplicationEvent.h"
-
 #include "Timestep.h"
+#include "so-so/Events/ApplicationEvent.h"
 #include "so-so/ImGui/ImGuiLayer.h"
 
 
