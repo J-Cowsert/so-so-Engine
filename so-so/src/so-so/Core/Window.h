@@ -5,42 +5,60 @@
 #include "so-so/Core/core.h"
 #include "so-so/Events/Event.h"
 
+#include "so-so/Renderer/GraphicsContext.h"
+#include <GLFW/glfw3.h>
+
 
 namespace soso {
 
-	struct WindowProps {
-		std::string Title;
-		unsigned int Width;
-		unsigned int Height;
-
-		WindowProps(const std::string& title = "So-So Engine",
-			unsigned int width = 1280,
-			unsigned int height = 720)
-			: Title(title), Width(width), Height(height)
-		{
-		}
+	// TODO: Implement Fullscreen / Decorated 
+	struct WindowConfig {
+		std::string Title = "so-so";
+		uint32_t Width = 1280;
+		uint32_t Height = 1024;
+		bool Fullscreen = false;
+		bool Decorated = true;
+		bool VSync = true;
 	};
 
-	// Interface 
 	class Window {
+	public:
+		using EventCallbackFunction = std::function<void(Event&)>;
 
 	public:
-		using EventCallbackFn = std::function<void(Event&)>;
+		Window(const WindowConfig& config);
+		virtual ~Window();
 
-		virtual ~Window() = default;
+		virtual void OnUpdate();
 
-		virtual void OnUpdate() = 0;
+		virtual uint32_t GetWidth() const { return m_Data.Width; }
+		virtual uint32_t GetHeight() const { return m_Data.Height; }
 
-		virtual unsigned int GetWidth() const = 0;
-		virtual unsigned int GetHeight() const = 0;
+		virtual void SetEventCallback(const EventCallbackFunction& callback) { m_Data.EventCallback = callback; }
+		virtual void SetVSync(bool enabled);
+		virtual bool IsVSync() const;
 
-		// Attributes
-		virtual void SetEventCallback(const EventCallbackFn& callback) = 0;
-		virtual void SetVSync(bool enabled) = 0;
-		virtual bool IsVSync() const = 0;
+		virtual void* GetNativeWindow() const { return m_Window; }
 
-		virtual void* GetNativeWindow() const = 0;
+		static Window* Create(const WindowConfig& config = WindowConfig());
 
-		static Window* Create(const WindowProps& props = WindowProps());
+	private:
+		virtual void Init(const WindowConfig& config);
+		virtual void Shutdown();
+
+	private:
+		GLFWwindow* m_Window;
+		GraphicsContext* m_Context;
+
+		struct WindowData {
+
+			std::string Title;
+			unsigned int Width, Height;
+			bool VSync;
+
+			EventCallbackFunction EventCallback;
+		};
+
+		WindowData m_Data;
 	};
 }

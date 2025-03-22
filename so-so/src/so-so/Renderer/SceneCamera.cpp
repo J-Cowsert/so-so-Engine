@@ -3,7 +3,7 @@
 
 #include "so-so/Core/Input.h"
 #include "so-so/Core/KeyCodes.h"
-#include "so-so/Core/MouseCodes.h"
+//#include "so-so/Core/MouseCodes.h"
 
 #include <glfw/glfw3.h>
 
@@ -54,16 +54,16 @@ namespace soso {
 	}
 
 	void SceneCamera::OnUpdate(Timestep ts) {
-		if (Input::IsKeyPressed(Key::LeftAlt)) {
+		if (Input::IsKeyPressed(KeyCode::LeftAlt)) {
 			const glm::vec2& mouse{ Input::GetMouseX(), Input::GetMouseY() };
 			glm::vec2 delta = (mouse - m_InitialMousePosition) * 0.003f;
 			m_InitialMousePosition = mouse;
-
-			if (Input::IsMouseButtonPressed(Mouse::ButtonMiddle))
+			
+			if (Input::IsMouseButtonPressed(MouseCode::ButtonMiddle))
 				MousePan(delta);
-			else if (Input::IsMouseButtonPressed(Mouse::ButtonLeft))
+			else if (Input::IsMouseButtonPressed(MouseCode::ButtonLeft))
 				MouseRotate(delta);
-			else if (Input::IsMouseButtonPressed(Mouse::ButtonRight))
+			else if (Input::IsMouseButtonPressed(MouseCode::ButtonRight))
 				MouseZoom(delta.y);
 		}
 

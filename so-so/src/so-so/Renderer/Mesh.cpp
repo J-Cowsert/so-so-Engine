@@ -1,10 +1,10 @@
 #include "sspch.h";
-
 #include "Mesh.h"
 #include "Renderer.h"
 #include <so-so/Asset/TextureImporter.h>
 
-
+// TODO: Remove tinyobjloader
+// Temporary asset loader
 #define TINYOBJLOADER_IMPLEMENTATION
 #include "tiny_obj_loader.h"
 

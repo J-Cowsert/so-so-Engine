@@ -1,8 +1,8 @@
 #include "sspch.h"
 #include "Texture.h"
 
-#include "so-so/Renderer/Renderer.h"
-#include "Platform/OpenGL/OpenGLTexture.h"
+#include "Renderer.h"
+#include "so-so/RendererAPI/OpenGL/OpenGLTexture.h"
 
 
 namespace soso {
