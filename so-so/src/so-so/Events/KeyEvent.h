@@ -4,7 +4,7 @@
 
 namespace soso {
 
-	class SOSO_API KeyEvent : public Event {
+	class KeyEvent : public Event {
 	public:
 		inline int GetKeyCode() const { return m_KeyCode; }
 
@@ -16,7 +16,7 @@ namespace soso {
 		int m_KeyCode;
 	};
 
-	class SOSO_API KeyPressedEvent : public KeyEvent {
+	class KeyPressedEvent : public KeyEvent {
 	public:
 		KeyPressedEvent(int keycode, bool isRepeat = false)
 			: KeyEvent(keycode), m_IsRepeat(isRepeat) {}
@@ -34,7 +34,7 @@ namespace soso {
 		bool m_IsRepeat;
 	};
 
-	class SOSO_API KeyReleasedEvent : public KeyEvent {
+	class KeyReleasedEvent : public KeyEvent {
 	public:
 		KeyReleasedEvent(int keycode)
 			: KeyEvent(keycode) {}
@@ -48,7 +48,7 @@ namespace soso {
 		EVENT_CLASS_TYPE(KeyReleased)
 	};
 
-	class SOSO_API KeyTypedEvent : public KeyEvent {
+	class KeyTypedEvent : public KeyEvent {
 	public:
 		KeyTypedEvent(int keycode)
 			: KeyEvent(keycode) {}

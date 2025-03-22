@@ -1,5 +1,5 @@
 #include "sspch.h"
-#include "Platform/OpenGL/OpenGLTexture.h"
+#include "so-so/RendererAPI/OpenGL/OpenGLTexture.h"
 
 namespace soso {
 
@@ -29,11 +29,11 @@ namespace soso {
 
 	}
 
-	OpenGLTexture2D::OpenGLTexture2D(const TextureProvision& provision, Buffer data)
-		: m_Provision(provision), m_Width(m_Provision.Width), m_Height(m_Provision.Height) {
+	OpenGLTexture2D::OpenGLTexture2D(const TextureConfig& config, Buffer data)
+		: m_Config(config), m_Width(m_Config.Width), m_Height(m_Config.Height) {
 
-		m_InternalFormat = Utils::SosoImageFormatToGLInternalFormat(m_Provision.Format);
-		m_DataFormat = Utils::SosoImageFormatToGLDataFormat(m_Provision.Format);
+		m_InternalFormat = Utils::SosoImageFormatToGLInternalFormat(m_Config.Format);
+		m_DataFormat = Utils::SosoImageFormatToGLDataFormat(m_Config.Format);
 
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
 		glTextureStorage2D(m_RendererID, 1, m_InternalFormat, m_Width, m_Height);
@@ -78,11 +78,11 @@ namespace soso {
 
 
 
-	OpenGLTextureCube::OpenGLTextureCube(const TextureProvision& provision, const std::array<Buffer, 6>& data)
-		: m_Provision(provision), m_Width(provision.Width), m_Height(provision.Height) {
+	OpenGLTextureCube::OpenGLTextureCube(const TextureConfig& config, const std::array<Buffer, 6>& data)
+		: m_Config(config), m_Width(config.Width), m_Height(config.Height) {
 
-			m_InternalFormat = Utils::SosoImageFormatToGLInternalFormat(provision.Format);
-			m_DataFormat = Utils::SosoImageFormatToGLDataFormat(provision.Format);
+			m_InternalFormat = Utils::SosoImageFormatToGLInternalFormat(config.Format);
+			m_DataFormat = Utils::SosoImageFormatToGLDataFormat(config.Format);
 
 			glCreateTextures(GL_TEXTURE_CUBE_MAP, 1, &m_RendererID);
 			

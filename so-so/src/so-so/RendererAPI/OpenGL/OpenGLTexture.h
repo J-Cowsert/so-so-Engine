@@ -8,10 +8,10 @@ namespace soso {
 
 	class OpenGLTexture2D : public Texture2D {
 	public:
-		OpenGLTexture2D(const TextureProvision& provision, Buffer data = Buffer());
+		OpenGLTexture2D(const TextureConfig& config, Buffer data = Buffer());
 		~OpenGLTexture2D();
 
-		const TextureProvision& GetProvision() const override { return m_Provision; }
+		const TextureConfig& GetConfig() const override { return m_Config; }
 
 		uint32_t GetWidth() const override { return m_Width; }
 		uint32_t GetHeight() const override { return m_Height; }
@@ -29,7 +29,7 @@ namespace soso {
 		}
 
 	private:
-		TextureProvision m_Provision;
+		TextureConfig m_Config;
 
 		bool m_IsLoaded = false;
 		uint32_t m_Width, m_Height;
@@ -40,10 +40,10 @@ namespace soso {
 
 	class OpenGLTextureCube : public TextureCube {
 	public:
-		OpenGLTextureCube(const TextureProvision& provision, const std::array<Buffer, 6>& data);
+		OpenGLTextureCube(const TextureConfig& config, const std::array<Buffer, 6>& data);
 		virtual ~OpenGLTextureCube();
 
-		const TextureProvision& GetProvision() const override { return m_Provision; }
+		const TextureConfig& GetConfig() const override { return m_Config; }
 
 		uint32_t GetWidth() const override { return m_Width; }
 		uint32_t GetHeight() const override { return m_Height; }
@@ -62,7 +62,7 @@ namespace soso {
 		void SetData(Buffer data) override { SS_CORE_ASSERT(false, "Use SetData with cube map data (6 faces)"); }
 
 	private:
-		TextureProvision m_Provision;
+		TextureConfig m_Config;
 
 		bool m_IsLoaded = false;
 		uint32_t m_Width, m_Height;

@@ -3,7 +3,7 @@
 
 #include "Renderer.h"
 
-#include "Platform/OpenGL/OpenGLBuffer.h"
+#include "so-so/RendererAPI/OpenGL/OpenGLBuffer.h"
 
 namespace soso {
 

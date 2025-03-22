@@ -23,19 +23,19 @@ namespace soso {
 
 		data.Size = width * height * channels;
 
-		TextureProvision provision;
-		provision.Width = width;
-		provision.Height = height;
+		TextureConfig config;
+		config.Width = width;
+		config.Height = height;
 		switch (channels) {
 		case 3:
-			provision.Format = ImageFormat::RGB8;
+			config.Format = ImageFormat::RGB8;
 			break;
 		case 4:
-			provision.Format = ImageFormat::RGBA8;
+			config.Format = ImageFormat::RGBA8;
 			break;
 		}
 
-		std::shared_ptr<Texture2D> texture = Texture2D::Create(provision, data);
+		std::shared_ptr<Texture2D> texture = Texture2D::Create(config, data);
 		data.Release();
 		return texture;
     }
@@ -66,13 +66,13 @@ namespace soso {
 		}
 
 		
-		TextureProvision provision;
-		provision.Width = width;
-		provision.Height = height;
-		provision.Format = ImageFormat::RGBA8;
-		provision.GenerateMips = false;
+		TextureConfig config;
+		config.Width = width;
+		config.Height = height;
+		config.Format = ImageFormat::RGBA8;
+		config.GenerateMips = false;
 
-		std::shared_ptr<TextureCube> textureCube = TextureCube::Create(provision, faceBuffers);
+		std::shared_ptr<TextureCube> textureCube = TextureCube::Create(config, faceBuffers);
 
 		for (auto& buffer : faceBuffers)
 			buffer.Release();

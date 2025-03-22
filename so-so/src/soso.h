@@ -7,7 +7,6 @@
 
 #include "so-so/Core/Input.h"
 #include "so-so/Core/KeyCodes.h"
-#include "so-so/Core/MouseCodes.h"
 #include "so-so/Core/Timestep.h"
 
 #include "so-so/ImGui/ImGuiLayer.h"

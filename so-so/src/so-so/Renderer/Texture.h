@@ -15,7 +15,7 @@ namespace soso {
 		RGBA32F
 	};
 
-	struct TextureProvision {
+	struct TextureConfig {
 		uint32_t Width = 1;
 		uint32_t Height = 1;
 		ImageFormat Format = ImageFormat::RGBA8;
@@ -26,7 +26,7 @@ namespace soso {
 	public:
 		virtual ~Texture() = default;
 
-		virtual const TextureProvision& GetProvision() const = 0;
+		virtual const TextureConfig& GetConfig() const = 0;
 
 		virtual uint32_t GetWidth() const = 0;
 		virtual uint32_t GetHeight() const = 0;
@@ -43,11 +43,11 @@ namespace soso {
 
 	class Texture2D : public Texture {
 	public:
-		static std::shared_ptr<Texture2D> Create(const TextureProvision& provision, Buffer data = Buffer());
+		static std::shared_ptr<Texture2D> Create(const TextureConfig& config, Buffer data = Buffer());
 	};
 
 	class TextureCube : public Texture {
 	public:
-		static std::shared_ptr<TextureCube> Create(const TextureProvision& provision, const std::array<Buffer, 6>& data);
+		static std::shared_ptr<TextureCube> Create(const TextureConfig& config, const std::array<Buffer, 6>& data);
 	};
 }
