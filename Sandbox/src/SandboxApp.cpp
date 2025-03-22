@@ -1,4 +1,3 @@
-#define _SILENCE_ALL_MS_EXT_DEPRECATION_WARNINGS
 
 #include "TestLayer.h"
 #include "EditorLayer.h"
@@ -8,7 +7,7 @@
 class Sandbox : public soso::Application {
 public:
 	Sandbox() {
-		PushLayer(new EditorLayer());
+		PushLayer(new TestLayer());
 	}
 
 	~Sandbox() {}

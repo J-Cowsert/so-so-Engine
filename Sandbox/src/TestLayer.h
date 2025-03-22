@@ -8,7 +8,7 @@
 #include "Misc/Skybox.h"
 
 #include "glm/ext.hpp"
-#include "imgui/imgui.h"
+#include "imgui.h"
 
 
 class TestLayer : public soso::Layer {

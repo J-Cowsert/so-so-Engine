@@ -112,12 +112,15 @@ project "Sandbox"
 	}
 
 	includedirs
-	{
-		"so-so/vendor/spdlog/include",
-		"so-so/src",
-		"so-so/vendor",
-		"so-so/vendor/glm"
-	}
+    {
+        "so-so/src",
+        "so-so/vendor/spdlog/include",
+        "so-so/vendor/GLFW/include",
+        "so-so/vendor/Glad/include",
+        "so-so/vendor/imgui",
+        "so-so/vendor/glm",
+        "so-so/vendor/stb_image"
+    }
 
 	links 
 	{

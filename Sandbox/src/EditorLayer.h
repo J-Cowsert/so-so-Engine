@@ -9,7 +9,7 @@
 #include "so-so/Renderer/Renderer.h"
 
 #include "glm/ext.hpp"
-#include "imgui/imgui.h"
+#include "imgui.h"
 
 #include "ShaderToyLayer.h"
 
