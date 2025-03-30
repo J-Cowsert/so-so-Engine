@@ -2,9 +2,18 @@
 
 #include <memory>
 
-
 #if !defined(SS_PLATFORM_WINDOWS) && !defined(SS_PLATFORM_LINUX)
 	#error Platform not supported
+#endif
+
+#if defined(__GNUC__)
+	#if defined(__clang__)
+		#define SS_COMPILER_CLANG
+	#else
+		#define SS_COMPILER_GCC
+	#endif
+#elif defined(_MSC_VER)
+	#define SS_COMPILER_MSVC
 #endif
 
 #ifdef SS_PLATFORM_WINDOWS
