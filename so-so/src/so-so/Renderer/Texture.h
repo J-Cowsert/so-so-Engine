@@ -12,7 +12,7 @@ namespace soso {
 		R8,
 		RGB8,
 		RGBA8,
-		RGBA32F
+		RGBA16F
 	};
 
 	struct TextureConfig {

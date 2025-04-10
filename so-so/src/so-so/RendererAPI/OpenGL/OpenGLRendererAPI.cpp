@@ -5,7 +5,7 @@
 
 namespace soso {
 
-	void OpenGLMessageCallback(
+	void OpenGLDebugCallback(
 		unsigned source,
 		unsigned type,
 		unsigned id,
@@ -25,17 +25,29 @@ namespace soso {
 
 	void OpenGLRendererAPI::Init() {
 
+
 	#ifdef SS_DEBUG
 		glEnable(GL_DEBUG_OUTPUT);
 		glEnable(GL_DEBUG_OUTPUT_SYNCHRONOUS);
-		glDebugMessageCallback(OpenGLMessageCallback, nullptr);
+		glDebugMessageCallback(OpenGLDebugCallback, nullptr);
 		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
 	#endif
 
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
 		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_LINE_SMOOTH);
+		//glEnable(GL_BLEND);
+		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glEnable(GL_LINE_SMOOTH);
+		//glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+		glFrontFace(GL_CCW);
+
+		GLenum error = glGetError();
+		while (error != GL_NO_ERROR) {
+			SS_CORE_ERROR("OpenGL Error {0}", error);
+			error = glGetError();
+		}
+
+		glUseProgram(0);
 	}
 
 
@@ -61,11 +73,7 @@ namespace soso {
 	}
 
 	void OpenGLRendererAPI::EnableDepthTest() {
-		glDepthFunc(GL_LEQUAL);
-	}
-
-	void OpenGLRendererAPI::EnableCulling() {
-		
+		glEnable(GL_DEPTH_TEST);
 	}
 
 	void OpenGLRendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
@@ -80,7 +88,7 @@ namespace soso {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 	}
 
-	void OpenGLRendererAPI::DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray) {
+	void OpenGLRendererAPI::DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray, const uint32_t indexCount) {
 
 		vertexArray->Bind();
 		glDrawElements(GL_TRIANGLES, vertexArray->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr);

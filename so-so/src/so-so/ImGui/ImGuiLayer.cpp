@@ -8,8 +8,8 @@
 #include "so-so/Core/Application.h"
 
 //Temporary
-#include <GLFW/glfw3.h>
 #include <Glad/glad.h>
+#include <GLFW/glfw3.h>
 
 
 namespace soso {

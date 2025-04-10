@@ -9,7 +9,9 @@ namespace soso {
 	enum class ShaderType {
 		None = 0,
 		Vertex,
-		Fragment
+		Fragment,
+		//TODO: implement
+		Compute
 	};
 
 	class OpenGLShader : public Shader {
@@ -39,8 +41,6 @@ namespace soso {
 		void Compile(std::unordered_map<ShaderType, std::string> shaderSources);
 
 	private:
-		
-
 		uint32_t m_RendererID;
 		std::string m_Name;
 
