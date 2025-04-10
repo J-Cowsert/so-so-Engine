@@ -25,6 +25,8 @@ namespace soso {
 		m_ImGuiLayer = new ImGuiLayer();
 		PushOverlay(m_ImGuiLayer);
 
+		SS_CORE_INFO("Renderer Initialized");
+		soso::Renderer::Init();
 		
 	}
 
@@ -53,11 +55,9 @@ namespace soso {
 
 	void Application::Run() {
 
-		soso::Renderer::Init();
-
 		while (m_Running) {
 
-			RenderCommand::SetClearColor({ 0.1f, 0.1f, 0.1f, 1 });
+			RenderCommand::SetClearColor({ 0.2f, 0.2f, 0.2f, 1.0f });
 			RenderCommand::Clear();
 			
 			float time = Time::GetTime();

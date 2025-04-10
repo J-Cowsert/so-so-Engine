@@ -10,6 +10,11 @@
 
 namespace soso {
 
+	struct ApplicationConfig {
+		std::string name = "so-so engine";
+		std::string workingDirectory;
+	};
+
 	class Application
 	{
 	public:
