@@ -10,7 +10,7 @@ namespace soso {
 	class UID {
 	public:
 		UID();
-		explicit UID(uint64_t uid);
+		UID(uint64_t uid);
 
 		operator uint64_t () { return m_UID; }
 		operator const uint64_t () const { return m_UID; }
