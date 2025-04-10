@@ -11,8 +11,6 @@
 #include "glm/ext.hpp"
 #include "imgui.h"
 
-#include "ShaderToyLayer.h"
-
 // Temporary Editor
 
 class EditorLayer : public soso::Layer {
@@ -21,6 +19,7 @@ public:
 	EditorLayer()
 		:Layer("Editor") {
 
+		
 	}
 
 	void OnAttach() override {
@@ -31,6 +30,9 @@ public:
 		fbConfig.Height = 720;
 		
 		m_FrameBuffer = soso::FrameBuffer::Create(fbConfig);
+
+
+		m_RuntimeLayer->OnAttach();
 	}
 
 	void OnUpdate(soso::Timestep ts) override {
@@ -51,10 +53,7 @@ public:
 
 	
 		{
-
-			m_ShaderToyLayer.OnUpdate(ts);
-
-
+			m_RuntimeLayer->OnUpdate(ts);
 		}
 
 
@@ -64,7 +63,7 @@ public:
 	}
 
 	void OnEvent(soso::Event& event) override {
-		m_ShaderToyLayer.OnEvent(event);
+		m_RuntimeLayer->OnEvent(event);
 	}
 
 	void OnImGuiRender() override {
@@ -123,7 +122,7 @@ public:
 
 
 
-				m_ShaderToyLayer.SetResolution(m_ViewportSize);
+				//m_RuntimeLayer->SetResolution(m_ViewportSize);
 
 
 
@@ -135,13 +134,17 @@ public:
 
 		{
 
-			m_ShaderToyLayer.OnImGuiRender();
+			m_RuntimeLayer->OnImGuiRender();
 		}
 
 
 		ImGui::End();
 		ImGui::PopStyleVar();
 		ImGui::End();
+	}
+
+	void SetRuntimeLayer(std::unique_ptr<soso::Layer> layer) {
+		m_RuntimeLayer = std::move(layer);
 	}
 
 private:
@@ -155,5 +158,5 @@ private:
 
 
 private:
-	ShaderToy m_ShaderToyLayer;
+	std::unique_ptr<soso::Layer> m_RuntimeLayer;
 };

@@ -1,13 +1,18 @@
 
 #include "TestLayer.h"
 #include "EditorLayer.h"
-#include "ShaderToyLayer.h"
 
 
 class Sandbox : public soso::Application {
 public:
 	Sandbox() {
-		PushLayer(new TestLayer());
+
+		auto editor = new EditorLayer();
+
+		auto runtime = std::make_unique<TestLayer>();
+		editor->SetRuntimeLayer(std::move(runtime));
+
+		PushLayer(editor);
 	}
 
 	~Sandbox() {}

@@ -48,6 +48,9 @@ public:
 			6, 2, 1
 		};
 
+		
+		m_Shader = soso::Shader::Create("assets/shaders/Skybox.glsl");
+
 		m_VA = soso::VertexArray::Create();
 		m_VA->Bind();
 
@@ -55,27 +58,26 @@ public:
 		m_VB->SetLayout(soso::BufferLayout({
 			{ soso::ShaderDataType::Float3, "a_Position" }
 			}));
-		m_VB->Bind();
+		
 		m_VA->AddVertexBuffer(m_VB);
 
-		m_IB = soso::IndexBuffer::Create(indices, sizeof(indices) / sizeof(uint32_t));
-		m_IB->Bind();
+		m_IB = soso::IndexBuffer::Create(indices, sizeof(indices));
+		
 		m_VA->SetIndexBuffer(m_IB);
-
-		m_Shader = soso::Shader::Create("assets/shaders/Skybox.glsl");
+		m_VA->Unbind();
 	}
 
 
 	void Draw() {
 		
 		soso::RenderCommand::SetDepthFunction(soso::RenderCommand::DepthFunction::LEQUAL);
-
+		m_VA->Bind();
 		m_Shader->Bind();
 		m_TexCube->Bind(0);
 		m_Shader->SetInt("u_Skybox", 0);
 
 		soso::Renderer::SubmitSkybox(m_Shader, m_VA);
-
+		m_VA->Unbind();
 		soso::RenderCommand::SetDepthFunction(soso::RenderCommand::DepthFunction::LESS);
 	}
 

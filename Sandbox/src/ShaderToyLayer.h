@@ -3,6 +3,8 @@
 #include "soso.h"
 #include "so-so/Renderer/ShaderLibrary.h"
 
+#include "imgui.h"
+
 class ShaderToy : public soso::Layer {
 public:
 	ShaderToy() 
