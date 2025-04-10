@@ -1,32 +1,38 @@
 #pragma once
 
+#include "glm/glm.hpp"
+
 #include "RenderCommand.h"
 #include "SceneCamera.h"
-#include "Shader.h"
+#include "ShaderLibrary.h"
 
+#include "Mesh.h"
 
 namespace soso {
 
 	class Renderer {
 	public:
 		static void Init();
-
+		static void Shutdown();
 		static void OnWindowResize(uint32_t width, uint32_t height);
 
+		static std::shared_ptr<ShaderLibrary> GetShaderLibrary();
+
+		//static void BeginScene(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix, bool depthTest = true);
 		static void BeginScene(SceneCamera& camera);
 		static void EndScene();
 
-		static void Submit(const std::shared_ptr<Shader> shader, const std::shared_ptr<VertexArray>& vertexArray, const glm::mat4& transform);
+		static void Submit(const std::shared_ptr<Shader> shader, const std::shared_ptr<VertexArray>& vertexArray, const glm::mat4& transform = glm::mat4(1.0f));
+
+		static void SubmitMesh(const std::shared_ptr<Mesh> mesh, const glm::mat4& transform = glm::mat4(1.0f));
+
 		static void SubmitSkybox(const std::shared_ptr<Shader> shader, const std::shared_ptr<VertexArray>& vertexArray);
 
 		static RendererAPI::API GetAPI() { return RendererAPI::GetAPI(); }
 
-	private:
-		struct SceneData {
-			glm::mat4 ViewProjection;
-			glm::mat4 SkyboxViewProjection;
-		};
+		static void ImGuiRendererDebug();
 
-		static std::unique_ptr<SceneData> s_SceneData;
+	private:
+		
 	};
 }
