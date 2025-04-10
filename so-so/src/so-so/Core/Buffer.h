@@ -7,7 +7,7 @@ namespace soso {
 
 	// Non-owning raw buffer class
 	struct Buffer {
-		uint8_t* Data = nullptr;
+		void* Data = nullptr;
 		uint64_t Size = 0;
 
 		Buffer() = default;
@@ -17,7 +17,7 @@ namespace soso {
 		}
 
 		Buffer(const void* data, uint64_t size)
-			: Data((uint8_t*)data), Size(size) {
+			: Data((void*)data), Size(size) {
 		}
 
 		Buffer(const Buffer&) = default;
@@ -31,7 +31,7 @@ namespace soso {
 		void Allocate(uint64_t size) {
 			Release();
 
-			Data = (uint8_t*)malloc(size);
+			Data = (void*)malloc(size);
 			Size = size;
 		}
 
@@ -65,7 +65,7 @@ namespace soso {
 			m_Buffer.Release();
 		}
 
-		uint8_t* Data() { return m_Buffer.Data; }
+		void* Data() { return m_Buffer.Data; }
 		uint64_t Size() { return m_Buffer.Size; }
 
 		template<typename T>
