@@ -38,4 +38,14 @@ namespace soso {
 		auto [x, y] = GetMousePosition();
 		return y;
 	}
+
+	void Input::SetCursorMode(CursorMode mode) {
+		auto window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+		glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_NORMAL + (int)mode);
+	}
+
+	CursorMode Input::GetCursorMode(CursorMode mode) {
+		auto window = static_cast<GLFWwindow*>(Application::Get().GetWindow().GetNativeWindow());
+		return (CursorMode)(glfwGetInputMode(window, GLFW_CURSOR) - GLFW_CURSOR_NORMAL);
+	}
 }
