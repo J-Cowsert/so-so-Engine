@@ -47,16 +47,21 @@ project "so-so"
 
 		"%{prj.name}/vendor/stb_image/stb_image.cpp"
 	}
-
+	
+	
 	includedirs
 	{
 		"%{prj.name}/src",
+		"%{prj.name}/src/so-so/",
 		"%{prj.name}/vendor/spdlog/include",
 		"%{prj.name}/vendor/GLFW/include",
 		"%{prj.name}/vendor/Glad/include",
 		"%{prj.name}/vendor/imgui",
 		"%{prj.name}/vendor/glm",
-		"%{prj.name}/vendor/stb_image"
+		"%{prj.name}/vendor/stb_image",
+
+		
+		"%{prj.name}/vendor/assimp/include"
 	}
 
 	links 
@@ -65,8 +70,18 @@ project "so-so"
 		"Glad",
 		"imgui",
 		"opengl32.lib",
-		"dwmapi.lib"
+		"dwmapi.lib",
+
+	
+       
 	}
+
+
+	-- -- Windows only
+	-- libdirs 
+	-- {
+	-- 	"%{prj.location}/vendor/assimp/bin/windows/%{cfg.buildcfg}"
+	-- }
 
 	filter "system:windows"
 		
@@ -78,11 +93,24 @@ project "so-so"
 			"SS_BUILD_DLL",
 			"GLFW_INCLUDE_NONE"
 		}
+
+		links 
+		{
+			"assimp-vc143-mtd.lib"
+		}
+
+		libdirs 
+		{
+			"%{prj.location}/vendor/assimp/bin/windows/%{cfg.buildcfg}"
+		}
+
 	
 	filter "configurations:Debug"
 		defines "SS_DEBUG"
 		runtime "Debug"
 		symbols "On"
+
+
 
 	filter "configurations:Release"
 		defines "SS_RELEASE"
@@ -113,18 +141,31 @@ project "Sandbox"
 
 	includedirs
     {
+
+    	"%{prj.name}/src",
+    	
+
         "so-so/src",
         "so-so/vendor/spdlog/include",
         "so-so/vendor/GLFW/include",
         "so-so/vendor/Glad/include",
         "so-so/vendor/imgui",
         "so-so/vendor/glm",
-        "so-so/vendor/stb_image"
+        "so-so/vendor/stb_image",
+
+        "%{prj.name}/vendor/assimp/include"
     }
 
 	links 
 	{
-		"so-so"
+		"so-so",
+		"assimp-vc143-mtd.lib"
+	}
+
+	-- Windows only
+	libdirs 
+	{
+		"so-so/vendor/assimp/bin/windows/%{cfg.buildcfg}"
 	}
 
 	filter "system:windows"
@@ -136,6 +177,20 @@ project "Sandbox"
 			"SS_PLATFORM_WINDOWS"
 		}
 		
+
+	filter { "system:windows", "configurations:Debug" }
+
+		postbuildcommands {
+			'{COPY} "../so-so/vendor/assimp/bin/windows/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
+		}
+
+	filter { "system:windows", "configurations:Release" }
+
+		postbuildcommands {
+			'{COPY} "../so-so/vendor/assimp/bin/windows/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+		}
+
+
 	filter "configurations:Debug"
 		defines "SS_DEBUG"
 		runtime "Debug"
