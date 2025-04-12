@@ -12,8 +12,10 @@ namespace soso {
 		unsigned severity,
 		int length,
 		const char* message,
-		const void* userParam) {
-		switch (severity) {
+		const void* userParam) 
+	{
+		switch (severity) 
+		{
 		case GL_DEBUG_SEVERITY_HIGH:         SS_CORE_CRITICAL(message); return;
 		case GL_DEBUG_SEVERITY_MEDIUM:       SS_CORE_ERROR(message); return;
 		case GL_DEBUG_SEVERITY_LOW:          SS_CORE_WARN(message); return;
@@ -33,12 +35,14 @@ namespace soso {
 		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
 	#endif
 
+		//glEnable(GL_MULTISAMPLE);
+		glEnable(GL_CULL_FACE);
 
 		glEnable(GL_DEPTH_TEST);
-		//glEnable(GL_BLEND);
-		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		//glEnable(GL_LINE_SMOOTH);
-		//glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+		glEnable(GL_BLEND);
+		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		glEnable(GL_LINE_SMOOTH);
+		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		glFrontFace(GL_CCW);
 
 		GLenum error = glGetError();
@@ -85,7 +89,7 @@ namespace soso {
 	}
 
 	void OpenGLRendererAPI::Clear() {
-		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	}
 
 	void OpenGLRendererAPI::DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray, const uint32_t indexCount) {
