@@ -3,12 +3,13 @@
 #include "glm/glm.hpp"
 
 #include "RenderCommand.h"
-#include "SceneCamera.h"
+
 #include "ShaderLibrary.h"
 
-#include "Mesh.h"
-
 namespace soso {
+
+	class Mesh;
+	class SceneCamera;
 
 	class Renderer {
 	public:
@@ -18,7 +19,6 @@ namespace soso {
 
 		static std::shared_ptr<ShaderLibrary> GetShaderLibrary();
 
-		//static void BeginScene(const glm::mat4& projectionMatrix, const glm::mat4& viewMatrix, bool depthTest = true);
 		static void BeginScene(SceneCamera& camera);
 		static void EndScene();
 

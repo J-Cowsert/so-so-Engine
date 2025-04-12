@@ -1,5 +1,7 @@
 #include "sspch.h"
 #include "Renderer.h"
+#include "Mesh.h"
+#include "SceneCamera.h"
 
 // Temporary
 #include "glad/glad.h"
@@ -20,6 +22,7 @@ namespace soso {
 
 		glm::mat4 ViewProjection;
 		glm::mat4 SkyboxViewProjection;
+		glm::vec3 CameraPos;
 
 		DirectionalLight DirLight;
 	};
@@ -47,7 +50,6 @@ namespace soso {
 	void Renderer::Shutdown() {
 
 		delete s_Data;
-
 	}
 
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height) {
@@ -61,12 +63,12 @@ namespace soso {
 	
 	void Renderer::BeginScene(SceneCamera& camera) {
 
-		s_Data->ViewProjection = camera.GetViewProjection();
-
-		// Remove position components from the view matrix. We only want the skybox to move when we rotate, and not when we change positions. 
+		s_Data->ViewProjection = camera.GetViewProjection(); 
+		
 		glm::mat4 skyboxView = glm::mat4(glm::mat3(camera.GetViewMatrix()));
-
 		s_Data->SkyboxViewProjection = camera.GetProjection() * skyboxView;
+
+		s_Data->CameraPos = camera.GetPosition();
 	}
 
 	void Renderer::EndScene() {}
@@ -94,14 +96,15 @@ namespace soso {
 		
 		for (Submesh& submesh : mesh->GetSubmeshes()) {
 
-			auto& mat = materials[submesh.MaterialIndex];
-			auto& shader = mat->GetShader();
+			const auto& mat = materials[submesh.MaterialIndex];
+			const auto& shader = mat->GetShader();
 
 			mat->Bind();
 			shader->Bind();
 			
 			shader->SetMat4("u_ViewProjection", s_Data->ViewProjection);
 			shader->SetMat4("u_Transform", transform * submesh.Transform);
+			shader->SetFloat3("u_CamPos", s_Data->CameraPos);
 
 			shader->SetFloat3("u_DirLight.Direction", s_Data->DirLight.Direction);
 			shader->SetFloat3("u_DirLight.Ambient", s_Data->DirLight.Ambient);
@@ -137,8 +140,6 @@ namespace soso {
 
 		ImGui::Text("Direction");
 		ImGui::SliderFloat3("Direction", &s_Data->DirLight.Direction[0], -1.0f, 1.0f);
-		//s_Data->DirLight.Direction = glm::normalize(s_Data->DirLight.Direction);
-
 		ImGui::Text("Ambient");
 		ImGui::SliderFloat3("Ambient", &s_Data->DirLight.Ambient[0], 0.0f, 1.0f);
 		ImGui::Text("Diffuse");

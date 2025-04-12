@@ -49,27 +49,21 @@ struct Material {
 
 uniform DirLight u_DirLight;	
 uniform Material u_Material;
+uniform vec3     u_CamPos;
 
 void main() {
 
-	// vec4 texColor = texture(u_Material.Diffuse, v_TexCoord);
-	// color = texColor;
+	vec3 norm    = normalize(v_Normal);
+    vec3 lightDir= normalize(-u_DirLight.Direction);
+    vec3 viewDir = normalize(u_CamPos - v_FragPos);
+    vec3 halfDir = normalize(lightDir + viewDir);
 
-
-	vec3 norm = normalize(v_Normal);
-    vec3 lightDir = normalize(-u_DirLight.Direction);
-    vec3 viewDir = normalize(-v_FragPos);
-    vec3 reflectDir = reflect(-lightDir, norm);
-
-    vec3 ambient = u_DirLight.Ambient * texture(u_Material.Diffuse, v_TexCoord).rgb;
-
-    float diff = max(dot(norm, lightDir), 0.0);
-    vec3 diffuse = u_DirLight.Diffuse * diff * texture(u_Material.Diffuse, v_TexCoord).rgb;
-
-    float spec = pow(max(dot(viewDir, reflectDir), 0.0), u_Material.Shininess);
+    vec3 ambient  = u_DirLight.Ambient * texture(u_Material.Diffuse, v_TexCoord).rgb;
+    float diff    = max(dot(norm, lightDir), 0.0);
+    vec3 diffuse  = u_DirLight.Diffuse * diff * texture(u_Material.Diffuse, v_TexCoord).rgb;
+    float spec    = pow(max(dot(norm, halfDir), 0.0), u_Material.Shininess);
     vec3 specular = u_DirLight.Specular * spec * texture(u_Material.Specular, v_TexCoord).rgb;
 
     vec3 result = ambient + diffuse + specular;
-
     color = vec4(result, 1.0);
 }

@@ -2,7 +2,7 @@
 #include "Shader.h"
 
 #include "Renderer.h"
-#include "so-so/RendererAPI/OpenGL/OpenGLShader.h"
+#include "so-so/RenderAPI/OpenGL/OpenGLShader.h"
 
 namespace soso {
 

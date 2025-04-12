@@ -1,5 +1,4 @@
 #pragma once
-
 #include <soso.h>
 
 #include <so-so/Asset/TextureImporter.h>
@@ -27,9 +26,6 @@ struct Transform {
 
 class TestLayer : public soso::Layer {
 public:
-	
-
-	
 
 	TestLayer()
 		:Layer("Test") 
@@ -43,7 +39,7 @@ public:
 
 		float width = (float)soso::Application::Get().GetWindow().GetWidth(),
 			height = (float)soso::Application::Get().GetWindow().GetHeight();
-		m_Camera = soso::SceneCamera(80.0, width, height, 0.1f, 1000.0f);
+		m_Camera = soso::SceneCamera(80.0, width, height, 0.1f, 100000.0f);
 
 		
 		m_Mesh = std::make_shared<soso::Mesh>("assets/backpack/backpack.obj");
@@ -58,10 +54,10 @@ public:
 			"assets/textures/Skybox/skybox/front.jpg",
 			"assets/textures/Skybox/skybox/back.jpg"
 		});
-		
-		auto tex = soso::TextureImporter::LoadTexture2D("assets/textures/wood.png");
 
 		m_Skybox = Skybox(m_TexCube);
+
+		//m_MeshTransform.Scale *= 0.1;
 	}
 
 	void OnUpdate(soso::Timestep ts) override {
@@ -73,7 +69,7 @@ public:
 		soso::Renderer::BeginScene(m_Camera);
 		{
 
-			soso::Renderer::SubmitMesh(m_Mesh);
+			soso::Renderer::SubmitMesh(m_Mesh, m_MeshTransform.GetMatrix());
 			m_Skybox.Draw();
 			
 		}
@@ -86,9 +82,24 @@ public:
 
 	void OnImGuiRender() override {
 		
+		ImGui::Begin("Data");
 		{
+
+			ImGui::Begin("Transform Editor");
+
+			ImGui::DragFloat3("Position", &m_MeshTransform.Position.x, 0.1f);
+			ImGui::DragFloat3("Scale", &m_MeshTransform.Scale.x,    0.05f, 0.0f, 10.0f);
+
+			ImGui::DragFloat3("Rotation", &m_MeshTransform.Rotation.x, 1.0f, -360.0f, 360.0f, "%.1f°");
+
+			if (ImGui::Button("Reset Rotation"))
+				m_MeshTransform = Transform();
+
+			ImGui::End();
+
 			soso::Renderer::ImGuiRendererDebug();
 		}
+		ImGui::End();
 	}
 
 
@@ -98,7 +109,7 @@ private:
 
 	soso::SceneCamera m_Camera;
 
-	Transform t{};
+	Transform m_MeshTransform{};
 	std::shared_ptr<soso::Mesh> m_Mesh;
 
 	std::shared_ptr<soso::TextureCube> m_TexCube;

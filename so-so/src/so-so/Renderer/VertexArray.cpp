@@ -1,7 +1,7 @@
 #include "sspch.h"
 #include "VertexArray.h"
 #include "Renderer.h"
-#include "so-so/RendererAPI/OpenGL/OpenGLVertexArray.h"
+#include "so-so/RenderAPI/OpenGL/OpenGLVertexArray.h"
 
 namespace soso {
 

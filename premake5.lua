@@ -29,7 +29,7 @@ project "so-so"
 	location "so-so"
 	kind "StaticLib"
 	language "C++"
-	cppdialect "C++17"
+	cppdialect "C++20"
 	staticruntime "on"
 
 	targetdir ("bin/" .. Outputdir .. "/%{prj.name}")
@@ -94,14 +94,24 @@ project "so-so"
 			"GLFW_INCLUDE_NONE"
 		}
 
+		
+		libdirs 
+		{
+			"%{prj.location}/vendor/assimp/bin/windows/%{cfg.buildcfg}"
+		}
+
+	filter { "system:windows", "configurations:Debug" }
+
 		links 
 		{
 			"assimp-vc143-mtd.lib"
 		}
 
-		libdirs 
+	filter { "system:windows", "configurations:Release" }
+
+		links 
 		{
-			"%{prj.location}/vendor/assimp/bin/windows/%{cfg.buildcfg}"
+			"assimp-vc143-mt.lib"
 		}
 
 	
@@ -109,8 +119,6 @@ project "so-so"
 		defines "SS_DEBUG"
 		runtime "Debug"
 		symbols "On"
-
-
 
 	filter "configurations:Release"
 		defines "SS_RELEASE"
@@ -127,7 +135,7 @@ project "Sandbox"
 	location "Sandbox"
 	kind "ConsoleApp"
 	language "C++"
-	cppdialect "C++17"
+	cppdialect "C++20"
 	staticruntime "on"
 
 	targetdir ("bin/" .. Outputdir .. "/%{prj.name}")
@@ -158,8 +166,7 @@ project "Sandbox"
 
 	links 
 	{
-		"so-so",
-		"assimp-vc143-mtd.lib"
+		"so-so"
 	}
 
 	-- Windows only
@@ -183,11 +190,21 @@ project "Sandbox"
 		postbuildcommands {
 			'{COPY} "../so-so/vendor/assimp/bin/windows/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
 		}
+		
+		links 
+		{
+			"assimp-vc143-mtd.lib"
+		}
 
 	filter { "system:windows", "configurations:Release" }
 
 		postbuildcommands {
 			'{COPY} "../so-so/vendor/assimp/bin/windows/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+		}
+
+		links 
+		{
+			"assimp-vc143-mt.lib"
 		}
 
 

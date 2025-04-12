@@ -4,7 +4,6 @@
 #include "so-so/Events/MouseEvent.h"
 
 #include "Camera.h"
-#include "glm/glm.hpp"
 
 namespace soso {
 

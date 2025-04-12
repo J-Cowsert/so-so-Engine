@@ -9,7 +9,7 @@
 
 
 // TODO: Make this api agnostic. We shouldnt be using OpenGLContext directly
-#include "so-so/RendererAPI/OpenGL/OpenGLContext.h"
+#include "so-so/RenderAPI/OpenGL/OpenGLContext.h"
 
 namespace soso {
 
@@ -57,6 +57,8 @@ namespace soso {
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		SetVSync(m_Data.VSync);
 
+		//glfwWindowHint(GLFW_SAMPLES, 4); // Multi-Sampling
+
 		// GLFW callbacks
 		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
 
@@ -67,7 +69,7 @@ namespace soso {
 
 			WindowResizeEvent event(width, height);
 			data.EventCallback(event);
-			});
+		});
 
 		glfwSetWindowCloseCallback(m_Window, [](GLFWwindow* window) {
 
@@ -75,7 +77,7 @@ namespace soso {
 
 			WindowCloseEvent event;
 			data.EventCallback(event);
-			});
+		});
 
 		glfwSetKeyCallback(m_Window, [](GLFWwindow* window, int key, int scancode, int action, int mods) {
 
@@ -102,7 +104,7 @@ namespace soso {
 				break;
 			}
 			}
-			});
+		});
 
 		glfwSetCharCallback(m_Window, [](GLFWwindow* window, unsigned int codepoint) {
 
@@ -110,7 +112,7 @@ namespace soso {
 			KeyTypedEvent event(codepoint);
 			data.EventCallback(event);
 
-			});
+		});
 
 		glfwSetMouseButtonCallback(m_Window, [](GLFWwindow* window, int button, int action, int mods) {
 
@@ -131,7 +133,7 @@ namespace soso {
 				break;
 			}
 			}
-			});
+		});
 
 		glfwSetScrollCallback(m_Window, [](GLFWwindow* window, double xOffset, double yOffset) {
 
@@ -139,7 +141,7 @@ namespace soso {
 
 			MouseScrolledEvent event((float)xOffset, (float)yOffset);
 			data.EventCallback(event);
-			});
+		});
 
 		glfwSetCursorPosCallback(m_Window, [](GLFWwindow* window, double xPos, double yPos) {
 
@@ -147,7 +149,7 @@ namespace soso {
 
 			MouseMovedEvent event((float)xPos, (float)yPos);
 			data.EventCallback(event);
-			});
+		});
 	}
 
 	void Window::Shutdown() {

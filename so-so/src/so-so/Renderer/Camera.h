@@ -1,5 +1,4 @@
 #pragma once
-
 #include <glm/ext.hpp>
 
 namespace soso {
@@ -8,10 +7,8 @@ namespace soso {
 	public:
 
 		Camera() = default;
-		Camera(const glm::mat4& projection) : m_Projection(projection) {}
-		Camera(const float degreeFOV, const float width, const float height, const float nearP, const float farP) 
-			: m_Projection(glm::perspectiveFov(glm::radians(degreeFOV), width, height, nearP, farP))
-		{}
+		Camera(const glm::mat4& projection);
+		Camera(const float degreeFOV, const float width, const float height, const float nearP, const float farP);
 		
 		virtual ~Camera() = default;
 

@@ -1,7 +1,7 @@
 #include "sspch.h"
 #include "RenderCommand.h"
 
-#include "so-so/RendererAPI/OpenGL/OpenGLRendererAPI.h"
+#include "so-so/RenderAPI/OpenGL/OpenGLRendererAPI.h"
 
 namespace soso {
 

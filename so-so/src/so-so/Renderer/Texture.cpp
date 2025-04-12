@@ -2,7 +2,7 @@
 #include "Texture.h"
 
 #include "Renderer.h"
-#include "so-so/RendererAPI/OpenGL/OpenGLTexture.h"
+#include "so-so/RenderAPI/OpenGL/OpenGLTexture.h"
 
 
 namespace soso {
