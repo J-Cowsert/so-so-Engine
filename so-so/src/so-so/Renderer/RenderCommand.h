@@ -4,7 +4,7 @@
 
 namespace soso {
 
-	// TODO: Remove this class
+	// TODO: Remove this unnecessary abstraction layer
 	class RenderCommand {
 	public:
 		using DepthFunction = RendererAPI::DepthFunction;

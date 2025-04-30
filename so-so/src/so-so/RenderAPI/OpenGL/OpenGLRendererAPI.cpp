@@ -36,14 +36,17 @@ namespace soso {
 	#endif
 
 		//glEnable(GL_MULTISAMPLE);
+
 		glEnable(GL_CULL_FACE);
+		glCullFace(GL_BACK);
+		glFrontFace(GL_CCW);
 
 		glEnable(GL_DEPTH_TEST);
 		glEnable(GL_BLEND);
 		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
-		glEnable(GL_LINE_SMOOTH);
-		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-		glFrontFace(GL_CCW);
+		//glEnable(GL_LINE_SMOOTH);
+		//glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
+		//glEnable(GL_FRAMEBUFFER_SRGB);
 
 		GLenum error = glGetError();
 		while (error != GL_NO_ERROR) {

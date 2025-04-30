@@ -11,7 +11,7 @@ namespace soso {
 			None = 0, OpenGL = 1
 		};
 
-		// Get rid of this. Shouldnt expose opengl specific api at this level, Depth function should be set internally
+		
 		enum class DepthFunction {
 			LESS,
 			LEQUAL,

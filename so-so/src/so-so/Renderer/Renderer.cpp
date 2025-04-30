@@ -1,7 +1,11 @@
 #include "sspch.h"
 #include "Renderer.h"
+
 #include "Mesh.h"
+#include "Material.h"
 #include "SceneCamera.h"
+#include "UniformBuffer.h"
+#include "FrameBuffer.h"
 
 // Temporary
 #include "glad/glad.h"
@@ -9,22 +13,33 @@
 
 namespace soso {
 
+	struct CameraData {
+		glm::mat4 ViewProjection;
+		glm::mat4 RotationOnlyViewProjection;
+		glm::vec3 CameraPos;
+	};
+
 	struct DirectionalLight {
-		glm::vec3 Direction;
-		glm::vec3 Ambient;
-		glm::vec3 Diffuse;
-		glm::vec3 Specular;
+		glm::vec4 Direction;
+		glm::vec4 Ambient;
+		glm::vec4 Diffuse;
+		glm::vec4 Specular;
 	};
 
 	struct RenderData {
 
+		std::shared_ptr<FrameBuffer> CompositeFrameBuffer; // Main render target
+
 		std::shared_ptr<ShaderLibrary> ShaderLibrary;
 
-		glm::mat4 ViewProjection;
-		glm::mat4 SkyboxViewProjection;
-		glm::vec3 CameraPos;
+		std::shared_ptr<Texture2D> WhiteTexture; // Default texture
 
-		DirectionalLight DirLight;
+		std::shared_ptr<UniformBuffer> CameraBufferObject;
+		std::shared_ptr<UniformBuffer> LightBufferObject;
+		std::shared_ptr<UniformBuffer> TransformBufferObject;
+
+		CameraData CameraData;
+		DirectionalLight LightData;
 	};
 
 	static RenderData* s_Data = nullptr;
@@ -32,17 +47,40 @@ namespace soso {
 	void Renderer::Init() {
 		
 		s_Data = new RenderData;
+
+		// Initialize Compositing framebuffer
+		FrameBufferConfig fbConfig;
+		fbConfig.Attachments = { FrameBufferTextureFormat::RGBA8,
+								 FrameBufferTextureFormat::RED_INTEGER, 
+								 FrameBufferTextureFormat::DEPTH24STENCIL8 };
+		fbConfig.Width = 1280;
+		fbConfig.Height = 720;
+		s_Data->CompositeFrameBuffer = FrameBuffer::Create(fbConfig);
+
+		// Load default shaders
 		s_Data->ShaderLibrary = std::make_shared<ShaderLibrary>();
-
-		Renderer::GetShaderLibrary()->Load("Resources/Shader/Phong.glsl");
+		Renderer::GetShaderLibrary()->Load("Debug", "Resources/Shader/Debug.glsl");
 		Renderer::GetShaderLibrary()->Load("Resources/Shader/Skybox.glsl");
-		Renderer::GetShaderLibrary()->Load("Resources/Shader/Texture.glsl");
+		Renderer::GetShaderLibrary()->Load("Resources/Shader/BlinnPhong.glsl");
 
-		// Temporary
-		s_Data->DirLight.Direction = glm::vec3(-0.2f, -1.0f, -0.3f);
-		s_Data->DirLight.Ambient = glm::vec3(0.9f, 0.9f, 0.9f);
-		s_Data->DirLight.Diffuse = glm::vec3(0.5f, 0.5f, 0.5f);
-		s_Data->DirLight.Specular = glm::vec3(1.0f, 1.0f, 1.0f);
+		// Create default white texture
+		TextureConfig config;
+		config.Format = ImageFormat::RGBA8;
+		config.Width = 1;
+		config.Height = 1;
+		uint32_t whiteTextureData = 0xffffffff;
+		s_Data->WhiteTexture = Texture2D::Create(config, ByteBuffer(&whiteTextureData, sizeof(uint32_t)));
+
+		// Create global UniformBuffers
+		s_Data->CameraBufferObject = UniformBuffer::Create(sizeof(CameraData), 0);
+		s_Data->TransformBufferObject = UniformBuffer::Create(sizeof(glm::mat4), 1);
+		s_Data->LightBufferObject = UniformBuffer::Create(sizeof(DirectionalLight), 2);
+
+
+		s_Data->LightData.Direction = glm::vec4(-0.0f, -1.0f, -0.0f, 0.1f);
+		s_Data->LightData.Ambient = glm::vec4(0.5f);
+		s_Data->LightData.Diffuse = glm::vec4(1.0f, 0.95f, 0.85f, 1.0f);
+		s_Data->LightData.Specular = glm::vec4(1.0f);
 
 		RenderCommand::Init();
 	}
@@ -58,17 +96,32 @@ namespace soso {
 	}
 
 	std::shared_ptr<ShaderLibrary> Renderer::GetShaderLibrary() {
+
 		return s_Data->ShaderLibrary;
+	}
+
+	std::shared_ptr<FrameBuffer> Renderer::GetCompositeFrameBuffer() {	
+
+		return s_Data->CompositeFrameBuffer;
+	}
+
+	std::shared_ptr<Texture2D> Renderer::GetWhiteTexture() {
+
+		return s_Data->WhiteTexture;
 	}
 	
 	void Renderer::BeginScene(SceneCamera& camera) {
 
-		s_Data->ViewProjection = camera.GetViewProjection(); 
-		
-		glm::mat4 skyboxView = glm::mat4(glm::mat3(camera.GetViewMatrix()));
-		s_Data->SkyboxViewProjection = camera.GetProjection() * skyboxView;
+		auto& cameraData = s_Data->CameraData;
 
-		s_Data->CameraPos = camera.GetPosition();
+		cameraData.ViewProjection = camera.GetViewProjection();
+		cameraData.RotationOnlyViewProjection = camera.GetProjection() * glm::mat4(glm::mat3(camera.GetViewMatrix()));
+		cameraData.CameraPos = camera.GetPosition();
+
+		auto& lightData = s_Data->LightData;
+
+		s_Data->CameraBufferObject->SetData(&cameraData, sizeof(CameraData));
+		s_Data->LightBufferObject->SetData(&lightData, sizeof(DirectionalLight));
 	}
 
 	void Renderer::EndScene() {}
@@ -76,42 +129,33 @@ namespace soso {
 	void Renderer::Submit(const std::shared_ptr<Shader> shader, const std::shared_ptr<VertexArray>& vertexArray, const glm::mat4& transform) {
 
 		shader->Bind();
-		shader->SetMat4("u_ViewProjection", s_Data->ViewProjection);
-		shader->SetMat4("u_Model", transform);
+
+		s_Data->TransformBufferObject->SetData(&transform, sizeof(transform));
 
 		vertexArray->Bind();
 		RenderCommand::DrawIndexed(vertexArray);
 	}
 
-	void Renderer::SubmitMesh(const std::shared_ptr<Mesh> mesh, const glm::mat4& transform) {
+	void Renderer::SubmitMesh(std::shared_ptr<Mesh> mesh, const glm::mat4& transform, const std::shared_ptr<Material>& materialOverride) {
+
+		auto& cameraData = s_Data->CameraData;
 
 		mesh->m_VertexArray->Bind();
-		mesh->m_VertexBuffer->Bind();
-		mesh->m_IndexBuffer->Bind();
-
+		
 		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 
-		auto& materials = mesh->m_Materials;
-
+		const auto& materials = mesh->m_Materials;
 		
 		for (Submesh& submesh : mesh->GetSubmeshes()) {
 
-			const auto& mat = materials[submesh.MaterialIndex];
-			const auto& shader = mat->GetShader();
+			const auto& material = (materialOverride) ? materialOverride : materials[submesh.MaterialIndex];
 
-			mat->Bind();
-			shader->Bind();
+			material->Bind();
+
+			glm::mat4 localTransform = transform * submesh.Transform;
+			s_Data->TransformBufferObject->SetData(&localTransform, sizeof(localTransform));
 			
-			shader->SetMat4("u_ViewProjection", s_Data->ViewProjection);
-			shader->SetMat4("u_Transform", transform * submesh.Transform);
-			shader->SetFloat3("u_CamPos", s_Data->CameraPos);
-
-			shader->SetFloat3("u_DirLight.Direction", s_Data->DirLight.Direction);
-			shader->SetFloat3("u_DirLight.Ambient", s_Data->DirLight.Ambient);
-			shader->SetFloat3("u_DirLight.Diffuse", s_Data->DirLight.Diffuse);
-			shader->SetFloat3("u_DirLight.Specular", s_Data->DirLight.Specular);
-			
-
+			// TODO: Move to RenderAPI
 			glDrawElementsBaseVertex(GL_TRIANGLES,
 				submesh.IndexCount,
 				GL_UNSIGNED_INT,
@@ -119,7 +163,7 @@ namespace soso {
 				submesh.BaseVertex);
 		}
 	
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 	}
 
 	void Renderer::SubmitSkybox(const std::shared_ptr<Shader> shader, const std::shared_ptr<VertexArray>& vertexArray) {
@@ -127,7 +171,6 @@ namespace soso {
 		RenderCommand::SetDepthFunction(soso::RenderCommand::DepthFunction::LEQUAL);
 		vertexArray->Bind();
 		shader->Bind();
-		shader->SetMat4("u_ViewProjection", s_Data->SkyboxViewProjection);
 		
 		RenderCommand::DrawIndexed(vertexArray);
 		vertexArray->Unbind();
@@ -139,13 +182,13 @@ namespace soso {
 		ImGui::Begin("Directional Light Settings");
 
 		ImGui::Text("Direction");
-		ImGui::SliderFloat3("Direction", &s_Data->DirLight.Direction[0], -1.0f, 1.0f);
+		ImGui::SliderFloat3("Direction", &s_Data->LightData.Direction[0], -1.0f, 1.0f);
 		ImGui::Text("Ambient");
-		ImGui::SliderFloat3("Ambient", &s_Data->DirLight.Ambient[0], 0.0f, 1.0f);
+		ImGui::SliderFloat3("Ambient", &s_Data->LightData.Ambient[0], 0.0f, 1.0f);
 		ImGui::Text("Diffuse");
-		ImGui::SliderFloat3("Diffuse", &s_Data->DirLight.Diffuse[0], 0.0f, 1.0f);
+		ImGui::SliderFloat3("Diffuse", &s_Data->LightData.Diffuse[0], 0.0f, 1.0f);
 		ImGui::Text("Specular");
-		ImGui::SliderFloat3("Specular", &s_Data->DirLight.Specular[0], 0.0f, 1.0f);
+		ImGui::SliderFloat3("Specular", &s_Data->LightData.Specular[0], 0.0f, 1.0f);
 
 		ImGui::End();
 	}
