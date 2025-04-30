@@ -15,11 +15,13 @@ namespace soso {
 
 	Application::Application() {
 
-		SS_CORE_ASSERT(!s_Instance, "Application already exists!");
+		SS_CORE_ASSERT(!s_Instance, "Application already exists");
 
 		s_Instance = this;
 
-		m_Window = std::unique_ptr<Window>(Window::Create());
+		WindowConfig config;
+		config.Fullscreen = false;
+		m_Window = std::unique_ptr<Window>(Window::Create(config));
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 
 		m_ImGuiLayer = new ImGuiLayer();
@@ -38,6 +40,10 @@ namespace soso {
 	void Application::PushOverlay(Layer* overlay) {
 		m_LayerStack.PushOverlay(overlay); 
 		overlay->OnAttach();
+	}
+
+	const float Application::GetFPS() const {
+		return m_FPS;
 	}
 
 	void Application::OnEvent(Event& e) {
@@ -63,6 +69,7 @@ namespace soso {
 			float time = Time::GetTime();
 			Timestep timestep = time - m_LastFrameTime;
 			m_LastFrameTime = time;
+			m_FPS = 1 / timestep;
 
 			ExecuteMainThreadQueue();
 
