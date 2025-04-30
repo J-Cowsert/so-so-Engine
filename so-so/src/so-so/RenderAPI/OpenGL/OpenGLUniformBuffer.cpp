@@ -6,7 +6,7 @@
 namespace soso {
 
 	OpenGLUniformBuffer::OpenGLUniformBuffer(uint32_t size, uint32_t bindingPoint) 
-		: m_Size(size)
+		: m_Size(size), m_BindingPoint(bindingPoint)
 	{
 		glCreateBuffers(1, &m_RendererID);
 		glNamedBufferData(m_RendererID, size, nullptr, GL_DYNAMIC_DRAW);
@@ -19,6 +19,8 @@ namespace soso {
 	}
 
 	void OpenGLUniformBuffer::SetData(const void* data, uint32_t size, uint32_t offset) {
+
+		SS_CORE_ASSERT(offset + size <= m_Size, "overflow");
 
 		glNamedBufferSubData(m_RendererID, offset, size, data);
 	}
