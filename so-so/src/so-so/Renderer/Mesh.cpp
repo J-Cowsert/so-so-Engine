@@ -1,78 +1,347 @@
-#include "sspch.h";
+#include "sspch.h"
 #include "Mesh.h"
-#include "Renderer.h"
-#include <so-so/Asset/TextureImporter.h>
+#include "so-so/Renderer/Renderer.h"
 
-// TODO: Remove tinyobjloader
-// Temporary asset loader
-#define TINYOBJLOADER_IMPLEMENTATION
-#include "tiny_obj_loader.h"
+#include "so-so/Asset/TextureImporter.h"
+#include <assimp/scene.h>
+#include <assimp/postprocess.h>
+
+#include <assimp/Importer.hpp>
+#include <assimp/DefaultLogger.hpp>
+#include <assimp/LogStream.hpp>
+
+#define MESH_DEBUG_LOG false // Toggle for debug logging
+
+#if MESH_DEBUG_LOG
+	#define MESH_DEBUG(...) SS_CORE_TRACE(__VA_ARGS__)
+#else
+	#define MESH_DEBUG(...)
+#endif
 
 namespace soso {
 
-    Mesh::Mesh(const std::string& path) {
-        
-        LoadMesh(path);
-    }
+	struct LogStream : public Assimp::LogStream {
 
-    Mesh::~Mesh() {
-       
-    }
+		static void Initialize() {
 
-    void Mesh::LoadMesh(const std::string& path) {
-        tinyobj::attrib_t attrib;
-        std::vector<tinyobj::shape_t> shapes;
-        std::vector<tinyobj::material_t> materials;
-        std::string warn, err;
+			if (Assimp::DefaultLogger::isNullLogger()) {
+				Assimp::DefaultLogger::create("", Assimp::Logger::VERBOSE);
+				Assimp::DefaultLogger::get()->attachStream(new LogStream, Assimp::Logger::Err | Assimp::Logger::Warn);
+			}
+		}
 
-        if (!tinyobj::LoadObj(&attrib, &shapes, &materials, &warn, &err, path.c_str())) {
-            SS_CORE_ERROR("Failed to load OBJ: {0}", err);
-            return;
-        }
+		void write(const char* message) override {
+			SS_CORE_WARN("Assimp: {0}", message);
+		}
+	};
 
-        std::unordered_map<std::string, uint32_t> uniqueVertices;
-        for (const auto& shape : shapes) {
-            for (const auto& index : shape.mesh.indices) {
-                std::string key =
-                    std::to_string(index.vertex_index) + "/" +
-                    std::to_string(index.normal_index) + "/" +
-                    std::to_string(index.texcoord_index);
+	glm::mat4 Mat4FromAssimpMat4(const aiMatrix4x4& matrix) {
+		glm::mat4 result;
+		//the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
+		result[0][0] = matrix.a1; result[1][0] = matrix.a2; result[2][0] = matrix.a3; result[3][0] = matrix.a4;
+		result[0][1] = matrix.b1; result[1][1] = matrix.b2; result[2][1] = matrix.b3; result[3][1] = matrix.b4;
+		result[0][2] = matrix.c1; result[1][2] = matrix.c2; result[2][2] = matrix.c3; result[3][2] = matrix.c4;
+		result[0][3] = matrix.d1; result[1][3] = matrix.d2; result[2][3] = matrix.d3; result[3][3] = matrix.d4;
+		return result;
+	}
 
-                if (uniqueVertices.count(key)) {
-                    m_MeshData.TempIndices.push_back(uniqueVertices[key]);
-                    continue;
-                }
+	static const uint32_t s_MeshImportFlags =
+		aiProcess_CalcTangentSpace |        // Create binormals/tangents just in case
+		aiProcess_Triangulate |             // Triangulate all faces of all meshes
+		aiProcess_SortByPType |             // Split meshes with more than one primitive type in homogeneous sub-meshes
+		aiProcess_GenNormals |              // Generate smooth normals for all vertices in the mesh if they dont exist
+		aiProcess_GenUVCoords |             // convert non-UV mappings to proper texture coordinate channels
+		aiProcess_OptimizeMeshes |          // Batch draws where possible
+		aiProcess_ValidateDataStructure |   // This makes sure that all indices are valid, all material references are correct, etc
+		aiProcess_GlobalScale;              // Convert cm to m for files where cm is native
 
-                uniqueVertices[key] = static_cast<uint32_t>(m_MeshData.TempVertices.size() / 8);
+	Mesh::Mesh(const std::filesystem::path& filepath)
+		: m_Filepath(filepath) {
 
-                // Position
-                m_MeshData.TempVertices.push_back(attrib.vertices[3 * index.vertex_index + 0]);
-                m_MeshData.TempVertices.push_back(attrib.vertices[3 * index.vertex_index + 1]);
-                m_MeshData.TempVertices.push_back(attrib.vertices[3 * index.vertex_index + 2]);
+		LogStream::Initialize();
 
-                // Normal
-                if (index.normal_index >= 0) {
-                    m_MeshData.TempVertices.push_back(attrib.normals[3 * index.normal_index + 0]);
-                    m_MeshData.TempVertices.push_back(attrib.normals[3 * index.normal_index + 1]);
-                    m_MeshData.TempVertices.push_back(attrib.normals[3 * index.normal_index + 2]);
-                }
-                else {
-                    m_MeshData.TempVertices.push_back(0.0f);
-                    m_MeshData.TempVertices.push_back(0.0f);
-                    m_MeshData.TempVertices.push_back(0.0f);
-                }
+		MESH_DEBUG("Loading Mesh: {0}", filepath);
 
-                if (index.texcoord_index >= 0) {
-                    m_MeshData.TempVertices.push_back(attrib.texcoords[2 * index.texcoord_index + 0]);
-                    m_MeshData.TempVertices.push_back(attrib.texcoords[2 * index.texcoord_index + 1]);
-                }
-                else {
-                    m_MeshData.TempVertices.push_back(0.0f);
-                    m_MeshData.TempVertices.push_back(0.0f);
-                }
+		m_Shader = Renderer::GetShaderLibrary()->Get("BlinnPhong");
 
-                m_MeshData.TempIndices.push_back(uniqueVertices[key]);
-            }
-        }
-    }
+		m_Importer = std::make_unique<Assimp::Importer>();
+		const aiScene* scene = m_Importer->ReadFile(filepath.generic_string(), s_MeshImportFlags);
+
+		if (!scene || !scene->HasMeshes()) {
+			MESH_DEBUG("Filed to load mesh file: {0}", filepath);
+			return;
+		}
+
+		m_aiScene = scene; // TODO: Remove
+
+		uint32_t vertexCount = 0;
+		uint32_t indexCount = 0;
+
+		m_Submeshes.reserve(scene->mNumMeshes);
+
+		// Meshes
+		for (size_t i = 0; i < scene->mNumMeshes; i++) {
+
+			aiMesh* mesh = scene->mMeshes[i];
+
+			Submesh& submesh = m_Submeshes.emplace_back();
+			submesh.BaseVertex = vertexCount;
+			submesh.BaseIndex = indexCount;
+			submesh.MaterialIndex = mesh->mMaterialIndex;
+			submesh.IndexCount = mesh->mNumFaces * 3;
+			submesh.VertexCount = mesh->mNumVertices;
+			submesh.MeshName = mesh->mName.C_Str();
+
+			vertexCount += submesh.VertexCount;
+			indexCount += submesh.IndexCount;
+
+			SS_CORE_ASSERT(mesh->HasPositions(), "Meshes require positions.");
+			SS_CORE_ASSERT(mesh->HasNormals(), "Meshes require normals.");
+
+			// Vertices
+			for (size_t j = 0; j < mesh->mNumVertices; j++) {
+
+				Vertex vertex;
+				vertex.Position = { mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z };
+				vertex.Normal = { mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z };
+
+				if (mesh->HasTangentsAndBitangents()) {
+					vertex.Tangent = { mesh->mTangents[j].x, mesh->mTangents[j].y, mesh->mTangents[j].z };
+					vertex.Bitangent = { mesh->mBitangents[j].x, mesh->mBitangents[j].y, mesh->mBitangents[j].z };
+				}
+
+				if (mesh->HasTextureCoords(0))
+					vertex.TexCoord = { mesh->mTextureCoords[0][j].x, 1 - mesh->mTextureCoords[0][j].y };
+
+				m_Vertices.push_back(vertex);
+			}
+
+			// Indices
+			for (size_t j = 0; j < mesh->mNumFaces; j++) {
+
+				SS_CORE_ASSERT((mesh->mFaces[j].mNumIndices == 3), "Mesh face is not a triangle");
+				Index index;
+				index = { mesh->mFaces[j].mIndices[0], mesh->mFaces[j].mIndices[1], mesh->mFaces[j].mIndices[2] };
+				m_Indices.push_back(index);
+			}
+		}
+
+		TraverseNodes(scene->mRootNode);
+
+		// Materials
+		if (scene->HasMaterials()) {
+
+			MESH_DEBUG("---- Materials - {0} ----", filepath);
+
+			m_Textures.resize(scene->mNumTextures);
+			m_Materials.resize(scene->mNumMaterials);
+
+			for (uint32_t i = 0; i < scene->mNumMaterials; i++) {
+				
+				auto aiMaterial = scene->mMaterials[i];
+				aiString name;
+
+				aiMaterial->Get(AI_MATKEY_NAME, name);
+				auto aiMaterialName = aiMaterial->GetName();
+
+				auto mat = Material::Create(m_Shader, aiMaterialName.data);
+				m_Materials[i] = mat;
+
+				uint32_t textureCount = aiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
+				MESH_DEBUG("    TextureCount = {0}", textureCount);
+
+
+				// Diffuse
+				glm::vec3 albedoColor(0.8f);
+				aiColor3D aiColor;
+				if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == AI_SUCCESS) {
+
+					albedoColor = { aiColor.r, aiColor.g, aiColor.b };
+				}
+				mat->Set("u_Material.DiffuseColor", albedoColor);
+
+				// Emission
+				mat->Set("u_Material.Emission", 0.0f);
+
+				// Specular
+				glm::vec3 specularColor(1.0);
+				if (aiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, aiColor) == AI_SUCCESS) {
+
+					specularColor = { aiColor.r, aiColor.g, aiColor.b };
+				}
+				mat->Set("u_Material.SpecularColor", specularColor);
+
+				// Shininess
+				float shininess;
+				if (aiMaterial->Get(AI_MATKEY_SHININESS, shininess) != AI_SUCCESS) {
+					shininess = 80.0;
+				}
+				mat->Set("u_Material.Shininess", shininess);
+
+				// Diffuse Map
+				aiString aiTexPath;
+				bool hasDiffuseMap = aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == aiReturn_SUCCESS;
+
+				if (hasDiffuseMap) {
+					MESH_DEBUG("tex name: {0}", std::string(aiTexPath.data));
+					std::filesystem::path path = filepath;
+					auto parentPath = path.parent_path();
+					MESH_DEBUG("Parent path: {0}", parentPath);
+					parentPath /= std::string(aiTexPath.data);
+					std::string texturePath = parentPath.string();
+					MESH_DEBUG("diffuse map path: {0}", texturePath);
+
+					auto texture = TextureImporter::LoadTexture2D(texturePath);
+
+					if (texture->IsLoaded()) {
+						mat->Set("u_Diffuse", texture);
+					}
+				}
+
+				// Specular Map
+				bool hasSpecularMap = aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &aiTexPath) == aiReturn_SUCCESS;
+
+				if (hasSpecularMap) {
+
+					std::filesystem::path path = filepath;
+					auto parentPath = path.parent_path();
+					MESH_DEBUG("Parent path: {0}", parentPath);
+					parentPath /= std::string(aiTexPath.data);
+					std::string texturePath = parentPath.string();
+					MESH_DEBUG("specular map path: {0}", texturePath);
+
+					auto texture = TextureImporter::LoadTexture2D(texturePath);
+					
+					if (texture->IsLoaded()) {
+						mat->Set("u_Specular", texture);
+					}
+				}
+			}
+			// TODO: Set missing textures to defualt white textures
+		}
+	
+		m_VertexArray = VertexArray::Create();
+		m_VertexArray->Bind();
+
+		BufferLayout vertexLayout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float3, "a_Normal" },
+				{ ShaderDataType::Float3, "a_Tangent" },
+				{ ShaderDataType::Float3, "a_Bitangent" },
+				{ ShaderDataType::Float2, "a_TexCoord" },
+		};
+
+		m_VertexBuffer = VertexBuffer::Create(m_Vertices.data(), m_Vertices.size() * sizeof(Vertex));
+		m_VertexBuffer->SetLayout(vertexLayout);
+
+		m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), m_Indices.size() * sizeof(Index));
+
+		m_VertexArray->AddVertexBuffer(m_VertexBuffer);
+		m_VertexArray->SetIndexBuffer(m_IndexBuffer);
+	}
+
+	Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<Index> indices, const glm::mat4& transform) 
+		: m_Vertices(vertices), m_Indices(indices)
+	{
+		Submesh& submesh = m_Submeshes.emplace_back();
+		submesh.BaseVertex = 0;
+		submesh.BaseIndex = 0;
+		submesh.IndexCount = indices.size() * 3;
+		submesh.Transform = transform;
+
+		m_VertexArray = VertexArray::Create();
+		m_VertexArray->Bind();
+
+		BufferLayout vertexLayout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float3, "a_Normal" },
+				{ ShaderDataType::Float3, "a_Tangent" },
+				{ ShaderDataType::Float3, "a_Bitangent" },
+				{ ShaderDataType::Float2, "a_TexCoord" },
+		};
+
+		m_VertexBuffer = VertexBuffer::Create(m_Vertices.data(), m_Vertices.size() * sizeof(Vertex));
+		m_VertexBuffer->SetLayout(vertexLayout);
+		m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), m_Indices.size() * sizeof(Index));
+		m_VertexArray->AddVertexBuffer(m_VertexBuffer);
+		m_VertexArray->SetIndexBuffer(m_IndexBuffer);
+
+		m_Shader = Renderer::GetShaderLibrary()->Get("BlinnPhong");
+	}
+
+	Mesh::~Mesh() {}
+
+	void Mesh::TraverseNodes(aiNode* node, const glm::mat4& parentTransform, uint32_t level) {
+
+		glm::mat4 localTransform = Mat4FromAssimpMat4(node->mTransformation);
+		glm::mat4 transform = parentTransform * localTransform; // Position relative to the parant node's transform
+
+		for (uint32_t i = 0; i < node->mNumMeshes; i++) {
+
+			uint32_t meshIdx = node->mMeshes[i];
+			auto& submesh = m_Submeshes[meshIdx];
+			submesh.LocalTransform = localTransform;
+			submesh.Transform = transform;
+			submesh.NodeName = node->mName.C_Str();
+		}
+
+		for (uint32_t i = 0; i < node->mNumChildren; i++) {
+			TraverseNodes(node->mChildren[i], transform, level + 1);
+		}
+	}
+
+	void Mesh::DumpBufferInfo() {
+
+		std::cout << "\n";
+		SS_CORE_TRACE("============ MESH LOG - Buffer Info ============");
+		SS_CORE_TRACE("INDEX BUFFER INFO: size: {0}. count: {1}", m_IndexBuffer->GetSize(), m_IndexBuffer->GetCount());
+		SS_CORE_TRACE("VERTEX BUFFER INFO: size: {0}. count: {1}");
+		SS_CORE_TRACE("VERTEX ARRAY BUFFER INFO: size: {0}. count: {1}");
+		SS_CORE_TRACE("Indicies Buffer Data: count: {0}. size: {1}", m_Indices.size(), m_Vertices.size() * sizeof(Index));
+		SS_CORE_TRACE("Verticies Buffer Data: count: {0}. size: {1}", m_Vertices.size(), m_Vertices.size() * sizeof(Vertex));
+		SS_CORE_TRACE("------------------");
+		SS_CORE_TRACE("Mesh has {0} submeshes, {1} materials, {2} textures", m_Submeshes.size(), m_Materials.size(), m_Textures.size());
+
+		float minU = 1.0f, maxU = 0.0f, minV = 1.0f, maxV = 0.0f;
+		for (const auto& vertex : m_Vertices) {
+			minU = std::min(minU, vertex.TexCoord.x);
+			maxU = std::max(maxU, vertex.TexCoord.x);
+			minV = std::min(minV, vertex.TexCoord.y);
+			maxV = std::max(maxV, vertex.TexCoord.y);
+		}
+		SS_CORE_TRACE("UV range: U [{}, {}], V [{}, {}]", minU, maxU, minV, maxV);
+
+#if 0
+		uint32_t idx = 0;
+		for (Submesh& submesh : m_Submeshes) {
+
+			SS_CORE_INFO("index {0}", idx);
+			SS_CORE_INFO("Index Count: {0}. BaseIndex: {1}. BaseVertex: {2}.", submesh.IndexCount, submesh.BaseIndex, submesh.BaseVertex);
+			SS_CORE_INFO("Offset into Index Buffer: {0}", (sizeof(uint32_t) * submesh.BaseIndex));
+
+			idx++;
+		}
+
+		for (size_t i = 0; i < m_Vertices.size(); i++) {
+			auto& vertex = m_Vertices[i];
+			SS_CORE_TRACE("Vertex: {0}", i);
+			SS_CORE_TRACE("Position: {0}, {1}, {2}", vertex.Position.x, vertex.Position.y, vertex.Position.z);
+			SS_CORE_TRACE("Normal: {0}, {1}, {2}", vertex.Normal.x, vertex.Normal.y, vertex.Normal.z);
+			SS_CORE_TRACE("Bitangent: {0}, {1}, {2}", vertex.Bitangent.x, vertex.Bitangent.y, vertex.Bitangent.z);
+			SS_CORE_TRACE("Tangent: {0}, {1}, {2}", vertex.Tangent.x, vertex.Tangent.y, vertex.Tangent.z);
+			SS_CORE_TRACE("TexCoord: {0}, {1}", vertex.TexCoord.x, vertex.TexCoord.y);
+		}
+#endif
+		SS_CORE_TRACE("================================================\n");
+	}
+
+	std::shared_ptr<Mesh> Mesh::Create(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const glm::mat4& transform) {
+
+		return std::make_shared<Mesh>(vertices, indices, transform);
+	}
+
+	std::shared_ptr<Mesh> Mesh::Create(const std::filesystem::path& filepath) {
+
+		return std::make_shared<Mesh>(filepath);
+	}
 }

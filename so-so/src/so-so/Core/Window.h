@@ -14,8 +14,8 @@ namespace soso {
 	// TODO: Implement Fullscreen / Decorated 
 	struct WindowConfig {
 		std::string Title = "so-so";
-		uint32_t Width = 1280;
-		uint32_t Height = 1024;
+		uint32_t Width = 1920;
+		uint32_t Height = 1080;
 		bool Fullscreen = false;
 		bool Decorated = true;
 		bool VSync = true;

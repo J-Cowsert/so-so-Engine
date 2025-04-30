@@ -1,7 +1,7 @@
 #include "sspch.h"
 #include "FrameBuffer.h"
 #include "Renderer.h"
-#include "so-so/RendererAPI/OpenGL/OpenGLFrameBuffer.h"
+#include "so-so/RenderAPI/OpenGL/OpenGLFrameBuffer.h"
 
 
 namespace soso {

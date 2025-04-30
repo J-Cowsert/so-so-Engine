@@ -1,7 +1,7 @@
 #pragma once
 
 #include "so-so/Core/core.h"
-#include "so-so/Core/Buffer.h"
+#include "so-so/Core/ByteBuffer.h"
 
 #include <string>
 
@@ -12,7 +12,7 @@ namespace soso {
 		R8,
 		RGB8,
 		RGBA8,
-		RGBA32F
+		RGBA16F
 	};
 
 	struct TextureConfig {
@@ -32,7 +32,7 @@ namespace soso {
 		virtual uint32_t GetHeight() const = 0;
 		virtual uint32_t GetRendererID() const = 0;
 
-		virtual void SetData(Buffer data) = 0;
+		virtual void SetData(ByteBuffer data) = 0;
 
 		virtual void Bind(uint32_t slot = 0) const = 0;
 
@@ -43,11 +43,11 @@ namespace soso {
 
 	class Texture2D : public Texture {
 	public:
-		static std::shared_ptr<Texture2D> Create(const TextureConfig& config, Buffer data = Buffer());
+		static std::shared_ptr<Texture2D> Create(const TextureConfig& config, ByteBuffer data = ByteBuffer());
 	};
 
 	class TextureCube : public Texture {
 	public:
-		static std::shared_ptr<TextureCube> Create(const TextureConfig& config, const std::array<Buffer, 6>& data);
+		static std::shared_ptr<TextureCube> Create(const TextureConfig& config, const std::array<ByteBuffer, 6>& data);
 	};
 }

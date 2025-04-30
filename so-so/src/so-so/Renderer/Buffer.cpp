@@ -3,7 +3,7 @@
 
 #include "Renderer.h"
 
-#include "so-so/RendererAPI/OpenGL/OpenGLBuffer.h"
+#include "so-so/RenderAPI/OpenGL/OpenGLBuffer.h"
 
 namespace soso {
 
@@ -22,7 +22,7 @@ namespace soso {
 		return nullptr;
 	}
 
-	std::shared_ptr<VertexBuffer> VertexBuffer::Create(float* verticies, uint32_t size) {
+	std::shared_ptr<VertexBuffer> VertexBuffer::Create(void* verticies, uint32_t size) {
 		
 		switch (Renderer::GetAPI()) 
 		{
@@ -37,7 +37,7 @@ namespace soso {
 		return nullptr;
 	}
 
-	std::shared_ptr<IndexBuffer> IndexBuffer::Create(uint32_t* indices, uint32_t count) {
+	std::shared_ptr<IndexBuffer> IndexBuffer::Create(void* indices, uint32_t count) {
 
 		switch (Renderer::GetAPI())
 		{

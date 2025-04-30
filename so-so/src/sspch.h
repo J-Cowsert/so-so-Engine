@@ -20,3 +20,4 @@
 #include "so-so/Core/core.h"
 #include "so-so/Core/Log.h"
 
+#include "glm/glm.hpp"

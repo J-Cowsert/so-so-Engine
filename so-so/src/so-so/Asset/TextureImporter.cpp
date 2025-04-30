@@ -8,7 +8,7 @@ namespace soso {
 
 		int width, height, channels;
 		stbi_set_flip_vertically_on_load(true);
-		Buffer data;
+		ByteBuffer data;
 
 		{
 			std::string pathStr = path.string();
@@ -41,14 +41,15 @@ namespace soso {
     }
 
 	std::shared_ptr<TextureCube> TextureImporter::LoadTextureCube(const std::array<std::filesystem::path, 6>& paths) {
-		std::array<Buffer, 6> faceBuffers;
+
+		std::array<ByteBuffer, 6> faceByteBuffers;
 		int width = 0, height = 0, channels = 0;
 		
 		stbi_set_flip_vertically_on_load(false);
 
 		for (size_t i = 0; i < 6; i++) {
 			std::string pathStr = paths[i].string();
-			Buffer data;
+			ByteBuffer data;
 			data.Data = stbi_load(pathStr.c_str(), &width, &height, &channels, 4);
 			channels = 4;
 
@@ -56,13 +57,13 @@ namespace soso {
 				SS_CORE_ERROR("TextureImporter::LoadTextureCube - Could not load texture from filepath: {}", pathStr);
 				
 				for (size_t j = 0; j < i; j++) {
-					faceBuffers[j].Release();
+					faceByteBuffers[j].Release();
 				}
 				return nullptr;
 			}
 
 			data.Size = width * height * channels;
-			faceBuffers[i] = data;
+			faceByteBuffers[i] = data;
 		}
 
 		
@@ -72,9 +73,9 @@ namespace soso {
 		config.Format = ImageFormat::RGBA8;
 		config.GenerateMips = false;
 
-		std::shared_ptr<TextureCube> textureCube = TextureCube::Create(config, faceBuffers);
+		std::shared_ptr<TextureCube> textureCube = TextureCube::Create(config, faceByteBuffers);
 
-		for (auto& buffer : faceBuffers)
+		for (auto& buffer : faceByteBuffers)
 			buffer.Release();
 
 		return textureCube;

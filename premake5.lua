@@ -29,7 +29,7 @@ project "so-so"
 	location "so-so"
 	kind "StaticLib"
 	language "C++"
-	cppdialect "C++17"
+	cppdialect "C++20"
 	staticruntime "on"
 
 	targetdir ("bin/" .. Outputdir .. "/%{prj.name}")
@@ -42,21 +42,30 @@ project "so-so"
 	{
 		"%{prj.name}/src/**.h",
 		"%{prj.name}/src/**.cpp",
-		"%{prj.name}/vendor/glm/glm/**.hpp",
+		"%{prj.name}/vendor/glm/glm/**.hpp", -- make glm its own project to reduce compile times
 		"%{prj.name}/vendor/glm/glm/**.inl",
+		"%{prj.name}/vendor/stb_image/stb_image.cpp",
 
-		"%{prj.name}/vendor/stb_image/stb_image.cpp"
+		"%{prj.name}/vendor/spirv-cross/**.hpp",
+		"%{prj.name}/vendor/spirv-cross/**.cpp",
 	}
-
+	
+	
 	includedirs
 	{
 		"%{prj.name}/src",
+		"%{prj.name}/src/so-so/",
 		"%{prj.name}/vendor/spdlog/include",
 		"%{prj.name}/vendor/GLFW/include",
 		"%{prj.name}/vendor/Glad/include",
 		"%{prj.name}/vendor/imgui",
 		"%{prj.name}/vendor/glm",
-		"%{prj.name}/vendor/stb_image"
+		"%{prj.name}/vendor/stb_image",
+		"%{prj.name}/vendor/assimp/include",
+
+		"%{prj.name}/vendor/shaderc/include/libshaderc",
+        "%{prj.name}/vendor/shaderc/include/libshaderc_util",
+        "%{prj.name}/vendor/spirv-cross",
 	}
 
 	links 
@@ -65,8 +74,9 @@ project "so-so"
 		"Glad",
 		"imgui",
 		"opengl32.lib",
-		"dwmapi.lib"
+		"dwmapi.lib",
 	}
+
 
 	filter "system:windows"
 		
@@ -75,9 +85,51 @@ project "so-so"
 		defines 
 		{
 			"SS_PLATFORM_WINDOWS",
-			"SS_BUILD_DLL",
 			"GLFW_INCLUDE_NONE"
 		}
+
+		
+		libdirs 
+		{
+			"%{prj.location}/vendor/assimp/bin/windows/%{cfg.buildcfg}",
+			"%{prj.location}/vendor/shaderc/bin/windows/%{cfg.buildcfg}",
+		}
+
+		links
+		{
+			"shaderc_combined.lib"
+		}
+
+	filter { "system:windows", "configurations:Debug" }
+
+		links 
+		{
+			"assimp-vc143-mtd.lib"
+
+		}
+
+	filter { "system:windows", "configurations:Release" }
+
+		links 
+		{
+			"assimp-vc143-mt.lib"
+		}
+
+	filter "system:linux"
+
+		defines
+		{
+			"SS_PLATFORM_LINUX"
+		}
+
+		libdirs 
+		{
+			"so-so/vendor/assimp/bin/linux/%{cfg.buildcfg}"
+		}
+
+	filter { "files:**/vendor/spirv-cross/**.cpp" }
+    	flags { "NoPCH" }
+
 	
 	filter "configurations:Debug"
 		defines "SS_DEBUG"
@@ -99,7 +151,7 @@ project "Sandbox"
 	location "Sandbox"
 	kind "ConsoleApp"
 	language "C++"
-	cppdialect "C++17"
+	cppdialect "C++20"
 	staticruntime "on"
 
 	targetdir ("bin/" .. Outputdir .. "/%{prj.name}")
@@ -108,18 +160,27 @@ project "Sandbox"
 	files
 	{
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp"
+		"%{prj.name}/src/**.cpp",
+
+		"Resources/Shader/**.glsl"
 	}
 
 	includedirs
     {
+
+    	"%{prj.name}/src",
+    	
+
         "so-so/src",
         "so-so/vendor/spdlog/include",
         "so-so/vendor/GLFW/include",
         "so-so/vendor/Glad/include",
         "so-so/vendor/imgui",
         "so-so/vendor/glm",
-        "so-so/vendor/stb_image"
+        "so-so/vendor/stb_image",
+
+        "%{prj.name}/vendor/shaderc/include/libshaderc",
+        "%{prj.name}/vendor/shaderc/include/libshaderc_util",
     }
 
 	links 
@@ -136,6 +197,27 @@ project "Sandbox"
 			"SS_PLATFORM_WINDOWS"
 		}
 		
+
+	filter "system:linux"
+
+		defines
+		{
+			"SS_PLATFORM_LINUX"
+		}
+
+
+	filter { "system:windows", "configurations:Debug" }
+
+		postbuildcommands {
+			'{COPY} "../so-so/vendor/assimp/bin/windows/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
+		}
+			
+	filter { "system:windows", "configurations:Release" }
+
+		postbuildcommands {
+			'{COPY} "../so-so/vendor/assimp/bin/windows/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+		}
+
 	filter "configurations:Debug"
 		defines "SS_DEBUG"
 		runtime "Debug"

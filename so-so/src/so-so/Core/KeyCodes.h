@@ -4,6 +4,12 @@
 
 namespace soso {
 
+	enum class CursorMode {
+		Normal = 0,
+		Hidden = 1,
+		Locked = 2
+	};
+
 	enum class MouseCode : uint16_t {
 		// From glfw3.h
 		Button0 = 0,
@@ -16,9 +22,9 @@ namespace soso {
 		Button7 = 7,
 
 		ButtonLast = Button7,
-		ButtonLeft = Button0,
-		ButtonRight = Button1,
-		ButtonMiddle = Button2
+		Left = Button0,
+		Right = Button1,
+		Middle = Button2
 	};
 
 	enum class KeyCode : uint16_t {

@@ -46,7 +46,7 @@ namespace soso {
 			return GetCategoryFlags() & category;
 		};
 	};
-
+	
 	class EventDispatcher {
 
 		template<typename T>

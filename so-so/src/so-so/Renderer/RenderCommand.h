@@ -4,6 +4,7 @@
 
 namespace soso {
 
+	// TODO: Remove this unnecessary abstraction layer
 	class RenderCommand {
 	public:
 		using DepthFunction = RendererAPI::DepthFunction;
@@ -19,10 +20,6 @@ namespace soso {
 
 		static void EnableDepthTest() {
 			s_RendererAPI->EnableDepthTest();
-		}
-
-		static void EnableCulling() {
-			s_RendererAPI->EnableCulling();
 		}
 
 		static void SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
@@ -45,8 +42,8 @@ namespace soso {
 			s_RendererAPI->DrawArrays(vertexArray);
 		}
 
-		static void DrawLines() {
-
+		static void DrawLines(const std::shared_ptr<VertexArray>& vertexArray) {
+			//s_RendererAPI->DrawLines(vertexArray);
 		}
 	private:
 

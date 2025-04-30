@@ -2,13 +2,13 @@
 #include "Texture.h"
 
 #include "Renderer.h"
-#include "so-so/RendererAPI/OpenGL/OpenGLTexture.h"
+#include "so-so/RenderAPI/OpenGL/OpenGLTexture.h"
 
 
 namespace soso {
 
 
-    std::shared_ptr<Texture2D> Texture2D::Create(const TextureConfig& config, Buffer data) {
+    std::shared_ptr<Texture2D> Texture2D::Create(const TextureConfig& config, ByteBuffer data) {
 
 		switch (Renderer::GetAPI()) {
 			case RendererAPI::API::None:    SS_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
@@ -19,7 +19,7 @@ namespace soso {
 		return nullptr;
     }
 
-	std::shared_ptr<TextureCube> TextureCube::Create(const TextureConfig& config, const std::array<Buffer, 6>& data) {
+	std::shared_ptr<TextureCube> TextureCube::Create(const TextureConfig& config, const std::array<ByteBuffer, 6>& data) {
 
 		switch (Renderer::GetAPI()) {
 			case RendererAPI::API::None:    SS_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
