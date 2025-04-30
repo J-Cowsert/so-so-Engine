@@ -1,4 +1,4 @@
-#include "sspch.h";
+#include "sspch.h"
 #include "Mesh.h"
 #include "so-so/Renderer/Renderer.h"
 
@@ -10,16 +10,12 @@
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/LogStream.hpp>
 
+#define MESH_DEBUG_LOG false // Toggle for debug logging
 
-// Temporary
-#include "glad/glad.h"
-
-#define MESH_DEBUG_LOG true // Toggle for debug logging
-
-#ifdef MESH_DEBUG_LOG
-	#define MESH_DEBUG(x, ...) SS_CORE_TRACE(__VA_ARGS__)
+#if MESH_DEBUG_LOG
+	#define MESH_DEBUG(...) SS_CORE_TRACE(__VA_ARGS__)
 #else
-	#define MESH_DEBUG(x, ...)
+	#define MESH_DEBUG(...)
 #endif
 
 namespace soso {
@@ -56,26 +52,27 @@ namespace soso {
 		aiProcess_GenNormals |              // Generate smooth normals for all vertices in the mesh if they dont exist
 		aiProcess_GenUVCoords |             // convert non-UV mappings to proper texture coordinate channels
 		aiProcess_OptimizeMeshes |          // Batch draws where possible
-		aiProcess_ValidateDataStructure;    // This makes sure that all indices are valid, all material references are correct, etc
+		aiProcess_ValidateDataStructure |   // This makes sure that all indices are valid, all material references are correct, etc
+		aiProcess_GlobalScale;              // Convert cm to m for files where cm is native
 
 	Mesh::Mesh(const std::filesystem::path& filepath)
 		: m_Filepath(filepath) {
 
 		LogStream::Initialize();
 
-		SS_CORE_INFO("Loading Mesh: {0}", filepath);
+		MESH_DEBUG("Loading Mesh: {0}", filepath);
 
-		m_Shader = Renderer::GetShaderLibrary()->Get("Texture");
+		m_Shader = Renderer::GetShaderLibrary()->Get("BlinnPhong");
 
 		m_Importer = std::make_unique<Assimp::Importer>();
 		const aiScene* scene = m_Importer->ReadFile(filepath.generic_string(), s_MeshImportFlags);
 
 		if (!scene || !scene->HasMeshes()) {
-			SS_CORE_ERROR("Filed to load mesh file: {0}", filepath);
+			MESH_DEBUG("Filed to load mesh file: {0}", filepath);
 			return;
 		}
 
-		m_aiScene = scene;
+		m_aiScene = scene; // TODO: Remove
 
 		uint32_t vertexCount = 0;
 		uint32_t indexCount = 0;
@@ -134,7 +131,7 @@ namespace soso {
 		// Materials
 		if (scene->HasMaterials()) {
 
-			SS_CORE_INFO("---- Materials - {0} ----", filepath);
+			MESH_DEBUG("---- Materials - {0} ----", filepath);
 
 			m_Textures.resize(scene->mNumTextures);
 			m_Materials.resize(scene->mNumMaterials);
@@ -145,57 +142,82 @@ namespace soso {
 				aiString name;
 
 				aiMaterial->Get(AI_MATKEY_NAME, name);
-				//SS_CORE_INFO("Mat name: {0}", name.data);
-				
-				// Will change once Material developes
-				auto mat = Material::Create(m_Shader);
+				auto aiMaterialName = aiMaterial->GetName();
+
+				auto mat = Material::Create(m_Shader, aiMaterialName.data);
 				m_Materials[i] = mat;
 
+				uint32_t textureCount = aiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
+				MESH_DEBUG("    TextureCount = {0}", textureCount);
 
+
+				// Diffuse
+				glm::vec3 albedoColor(0.8f);
+				aiColor3D aiColor;
+				if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == AI_SUCCESS) {
+
+					albedoColor = { aiColor.r, aiColor.g, aiColor.b };
+				}
+				mat->Set("u_Material.DiffuseColor", albedoColor);
+
+				// Emission
+				mat->Set("u_Material.Emission", 0.0f);
+
+				// Specular
+				glm::vec3 specularColor(1.0);
+				if (aiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, aiColor) == AI_SUCCESS) {
+
+					specularColor = { aiColor.r, aiColor.g, aiColor.b };
+				}
+				mat->Set("u_Material.SpecularColor", specularColor);
+
+				// Shininess
 				float shininess;
-				if (aiMaterial->Get(AI_MATKEY_SHININESS, shininess) != aiReturn_SUCCESS) {
+				if (aiMaterial->Get(AI_MATKEY_SHININESS, shininess) != AI_SUCCESS) {
 					shininess = 80.0;
 				}
-				mat->SetShininess(shininess);
+				mat->Set("u_Material.Shininess", shininess);
 
+				// Diffuse Map
 				aiString aiTexPath;
 				bool hasDiffuseMap = aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == aiReturn_SUCCESS;
 
 				if (hasDiffuseMap) {
-					SS_CORE_INFO("tex name: {0}", std::string(aiTexPath.data));
+					MESH_DEBUG("tex name: {0}", std::string(aiTexPath.data));
 					std::filesystem::path path = filepath;
 					auto parentPath = path.parent_path();
-					SS_CORE_INFO("Parent path: {0}", parentPath);
+					MESH_DEBUG("Parent path: {0}", parentPath);
 					parentPath /= std::string(aiTexPath.data);
 					std::string texturePath = parentPath.string();
-					SS_CORE_INFO("diffuse map path: {0}", texturePath);
+					MESH_DEBUG("diffuse map path: {0}", texturePath);
 
 					auto texture = TextureImporter::LoadTexture2D(texturePath);
 
 					if (texture->IsLoaded()) {
-						//m_Textures[i] = texture;
-						mat->SetDiffuseMap(texture);
+						mat->Set("u_Diffuse", texture);
 					}
 				}
 
+				// Specular Map
 				bool hasSpecularMap = aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &aiTexPath) == aiReturn_SUCCESS;
 
 				if (hasSpecularMap) {
+
 					std::filesystem::path path = filepath;
 					auto parentPath = path.parent_path();
-					SS_CORE_INFO("Parent path: {0}", parentPath);
+					MESH_DEBUG("Parent path: {0}", parentPath);
 					parentPath /= std::string(aiTexPath.data);
 					std::string texturePath = parentPath.string();
-					SS_CORE_INFO("specular map path: {0}", texturePath);
+					MESH_DEBUG("specular map path: {0}", texturePath);
 
 					auto texture = TextureImporter::LoadTexture2D(texturePath);
 					
 					if (texture->IsLoaded()) {
-						//m_Textures[i] = texture;
-						mat->SetSpecularMap(texture);
+						mat->Set("u_Specular", texture);
 					}
 				}
 			}
+			// TODO: Set missing textures to defualt white textures
 		}
 	
 		m_VertexArray = VertexArray::Create();
@@ -209,7 +231,6 @@ namespace soso {
 				{ ShaderDataType::Float2, "a_TexCoord" },
 		};
 
-
 		m_VertexBuffer = VertexBuffer::Create(m_Vertices.data(), m_Vertices.size() * sizeof(Vertex));
 		m_VertexBuffer->SetLayout(vertexLayout);
 
@@ -217,16 +238,38 @@ namespace soso {
 
 		m_VertexArray->AddVertexBuffer(m_VertexBuffer);
 		m_VertexArray->SetIndexBuffer(m_IndexBuffer);
+	}
 
-		//m_DefaultTexture = TextureImporter::LoadTexture2D("assets/textures/wood.png");
+	Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<Index> indices, const glm::mat4& transform) 
+		: m_Vertices(vertices), m_Indices(indices)
+	{
+		Submesh& submesh = m_Submeshes.emplace_back();
+		submesh.BaseVertex = 0;
+		submesh.BaseIndex = 0;
+		submesh.IndexCount = indices.size() * 3;
+		submesh.Transform = transform;
+
+		m_VertexArray = VertexArray::Create();
+		m_VertexArray->Bind();
+
+		BufferLayout vertexLayout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float3, "a_Normal" },
+				{ ShaderDataType::Float3, "a_Tangent" },
+				{ ShaderDataType::Float3, "a_Bitangent" },
+				{ ShaderDataType::Float2, "a_TexCoord" },
+		};
+
+		m_VertexBuffer = VertexBuffer::Create(m_Vertices.data(), m_Vertices.size() * sizeof(Vertex));
+		m_VertexBuffer->SetLayout(vertexLayout);
+		m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), m_Indices.size() * sizeof(Index));
+		m_VertexArray->AddVertexBuffer(m_VertexBuffer);
+		m_VertexArray->SetIndexBuffer(m_IndexBuffer);
+
+		m_Shader = Renderer::GetShaderLibrary()->Get("BlinnPhong");
 	}
 
 	Mesh::~Mesh() {}
-
-	void Mesh::Draw() {
-
-			
-	}
 
 	void Mesh::TraverseNodes(aiNode* node, const glm::mat4& parentTransform, uint32_t level) {
 
@@ -245,7 +288,6 @@ namespace soso {
 		for (uint32_t i = 0; i < node->mNumChildren; i++) {
 			TraverseNodes(node->mChildren[i], transform, level + 1);
 		}
-
 	}
 
 	void Mesh::DumpBufferInfo() {
@@ -291,5 +333,15 @@ namespace soso {
 		}
 #endif
 		SS_CORE_TRACE("================================================\n");
+	}
+
+	std::shared_ptr<Mesh> Mesh::Create(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const glm::mat4& transform) {
+
+		return std::make_shared<Mesh>(vertices, indices, transform);
+	}
+
+	std::shared_ptr<Mesh> Mesh::Create(const std::filesystem::path& filepath) {
+
+		return std::make_shared<Mesh>(filepath);
 	}
 }

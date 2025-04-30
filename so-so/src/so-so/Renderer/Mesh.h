@@ -60,9 +60,8 @@ namespace soso {
     public:
 		Mesh() = default;
 		Mesh(const std::filesystem::path& filepath);
+		Mesh(const std::vector<Vertex>& vertices, const std::vector<Index> indices, const glm::mat4& transform);
 		~Mesh();
-
-		void Draw();
 
 		std::vector<Submesh> GetSubmeshes() const { return m_Submeshes; }
 		const std::vector<Vertex> GetVertices() const { return m_Vertices; }
@@ -71,8 +70,11 @@ namespace soso {
 
 		const std::string& GetFilepath() const { return m_Filepath.string(); }
 
-
 		void DumpBufferInfo();
+
+		static std::shared_ptr<Mesh> Create(const std::filesystem::path& filepath);
+		static std::shared_ptr<Mesh> Create(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const glm::mat4& transform);
+
 	private:
 		void TraverseNodes(aiNode* node, const glm::mat4& parentTransform = glm::mat4(1.0f), uint32_t level = 0);
 
@@ -88,13 +90,13 @@ namespace soso {
 
 		// Materials
 		std::shared_ptr<Shader> m_Shader;
-		std::shared_ptr<Texture2D> m_DefaultTexture	;
+		std::shared_ptr<Texture2D> m_DefaultTexture;
 		std::vector<std::shared_ptr<Texture2D>> m_Textures;
 		std::vector<std::shared_ptr<Material>> m_Materials;
 
 	private:
 		std::unique_ptr<Assimp::Importer> m_Importer;
-		const aiScene* m_aiScene;
+		const aiScene* m_aiScene; // Do I need to store this?
 
 		std::filesystem::path m_Filepath;
 	};
