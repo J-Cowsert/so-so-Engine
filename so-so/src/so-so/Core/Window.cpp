@@ -48,7 +48,7 @@ namespace soso {
 			s_GLFWInitialized = true;
 		}
 
-		m_Window = glfwCreateWindow((int)config.Width, (int)config.Height, m_Data.Title.c_str(), nullptr, nullptr);
+		m_Window = glfwCreateWindow((int)config.Width, (int)config.Height, m_Data.Title.c_str(), config.Fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
 
 		//TODO: Make api agnostic
 		m_Context = new OpenGLContext(m_Window);
