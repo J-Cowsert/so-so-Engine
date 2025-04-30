@@ -42,10 +42,12 @@ project "so-so"
 	{
 		"%{prj.name}/src/**.h",
 		"%{prj.name}/src/**.cpp",
-		"%{prj.name}/vendor/glm/glm/**.hpp",
+		"%{prj.name}/vendor/glm/glm/**.hpp", -- make glm its own project to reduce compile times
 		"%{prj.name}/vendor/glm/glm/**.inl",
+		"%{prj.name}/vendor/stb_image/stb_image.cpp",
 
-		"%{prj.name}/vendor/stb_image/stb_image.cpp"
+		"%{prj.name}/vendor/spirv-cross/**.hpp",
+		"%{prj.name}/vendor/spirv-cross/**.cpp",
 	}
 	
 	
@@ -59,9 +61,11 @@ project "so-so"
 		"%{prj.name}/vendor/imgui",
 		"%{prj.name}/vendor/glm",
 		"%{prj.name}/vendor/stb_image",
+		"%{prj.name}/vendor/assimp/include",
 
-		
-		"%{prj.name}/vendor/assimp/include"
+		"%{prj.name}/vendor/shaderc/include/libshaderc",
+        "%{prj.name}/vendor/shaderc/include/libshaderc_util",
+        "%{prj.name}/vendor/spirv-cross",
 	}
 
 	links 
@@ -71,17 +75,8 @@ project "so-so"
 		"imgui",
 		"opengl32.lib",
 		"dwmapi.lib",
-
-	
-       
 	}
 
-
-	-- -- Windows only
-	-- libdirs 
-	-- {
-	-- 	"%{prj.location}/vendor/assimp/bin/windows/%{cfg.buildcfg}"
-	-- }
 
 	filter "system:windows"
 		
@@ -90,14 +85,19 @@ project "so-so"
 		defines 
 		{
 			"SS_PLATFORM_WINDOWS",
-			"SS_BUILD_DLL",
 			"GLFW_INCLUDE_NONE"
 		}
 
 		
 		libdirs 
 		{
-			"%{prj.location}/vendor/assimp/bin/windows/%{cfg.buildcfg}"
+			"%{prj.location}/vendor/assimp/bin/windows/%{cfg.buildcfg}",
+			"%{prj.location}/vendor/shaderc/bin/windows/%{cfg.buildcfg}",
+		}
+
+		links
+		{
+			"shaderc_combined.lib"
 		}
 
 	filter { "system:windows", "configurations:Debug" }
@@ -105,6 +105,7 @@ project "so-so"
 		links 
 		{
 			"assimp-vc143-mtd.lib"
+
 		}
 
 	filter { "system:windows", "configurations:Release" }
@@ -113,6 +114,21 @@ project "so-so"
 		{
 			"assimp-vc143-mt.lib"
 		}
+
+	filter "system:linux"
+
+		defines
+		{
+			"SS_PLATFORM_LINUX"
+		}
+
+		libdirs 
+		{
+			"so-so/vendor/assimp/bin/linux/%{cfg.buildcfg}"
+		}
+
+	filter { "files:**/vendor/spirv-cross/**.cpp" }
+    	flags { "NoPCH" }
 
 	
 	filter "configurations:Debug"
@@ -144,7 +160,9 @@ project "Sandbox"
 	files
 	{
 		"%{prj.name}/src/**.h",
-		"%{prj.name}/src/**.cpp"
+		"%{prj.name}/src/**.cpp",
+
+		"Resources/Shader/**.glsl"
 	}
 
 	includedirs
@@ -161,18 +179,13 @@ project "Sandbox"
         "so-so/vendor/glm",
         "so-so/vendor/stb_image",
 
-        "%{prj.name}/vendor/assimp/include"
+        "%{prj.name}/vendor/shaderc/include/libshaderc",
+        "%{prj.name}/vendor/shaderc/include/libshaderc_util",
     }
 
 	links 
 	{
 		"so-so"
-	}
-
-	-- Windows only
-	libdirs 
-	{
-		"so-so/vendor/assimp/bin/windows/%{cfg.buildcfg}"
 	}
 
 	filter "system:windows"
@@ -185,28 +198,25 @@ project "Sandbox"
 		}
 		
 
+	filter "system:linux"
+
+		defines
+		{
+			"SS_PLATFORM_LINUX"
+		}
+
+
 	filter { "system:windows", "configurations:Debug" }
 
 		postbuildcommands {
 			'{COPY} "../so-so/vendor/assimp/bin/windows/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
 		}
-		
-		links 
-		{
-			"assimp-vc143-mtd.lib"
-		}
-
+			
 	filter { "system:windows", "configurations:Release" }
 
 		postbuildcommands {
 			'{COPY} "../so-so/vendor/assimp/bin/windows/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
 		}
-
-		links 
-		{
-			"assimp-vc143-mt.lib"
-		}
-
 
 	filter "configurations:Debug"
 		defines "SS_DEBUG"
