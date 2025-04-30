@@ -49,7 +49,7 @@ public:
 		};
 
 		
-		m_Shader = soso::Shader::Create("assets/shaders/Skybox.glsl");
+		m_Shader = soso::Renderer::GetShaderLibrary()->Get("Skybox");
 
 		m_VA = soso::VertexArray::Create();
 		m_VA->Bind();
@@ -74,7 +74,7 @@ public:
 		m_VA->Bind();
 		m_Shader->Bind();
 		m_TexCube->Bind(0);
-		m_Shader->SetInt("u_Skybox", 0);
+		m_Shader->SetUniform("u_Skybox", 0);
 
 		soso::Renderer::SubmitSkybox(m_Shader, m_VA);
 		m_VA->Unbind();

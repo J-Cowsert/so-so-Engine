@@ -23,13 +23,8 @@ public:
 	}
 
 	void OnAttach() override {
-
-		soso::FrameBufferConfig fbConfig;
-		fbConfig.Attachments = { soso::FrameBufferTextureFormat::RGBA8, soso::FrameBufferTextureFormat::RED_INTEGER, soso::FrameBufferTextureFormat::DEPTH24STENCIL8 };
-		fbConfig.Width = 1280;
-		fbConfig.Height = 720;
 		
-		m_FrameBuffer = soso::FrameBuffer::Create(fbConfig);
+		m_FrameBuffer = soso::Renderer::GetCompositeFrameBuffer();
 
 
 		m_RuntimeLayer->OnAttach();
@@ -44,12 +39,8 @@ public:
 		}
 
 		m_FrameBuffer->Bind();
-		soso::RenderCommand::SetClearColor({ 1.0f, 0.1f, 0.1f, 1 });
+		soso::RenderCommand::SetClearColor({ 0.3f, 0.3f, 0.3f, 1 });
 		soso::RenderCommand::Clear();
-
-		float time = soso::Time::GetTime();
-		soso::Timestep timestep = time - m_LastFrameTime;
-		m_LastFrameTime = time;
 
 	
 		{
@@ -64,6 +55,11 @@ public:
 
 	void OnEvent(soso::Event& event) override {
 		m_RuntimeLayer->OnEvent(event);
+	}
+
+	bool OnWindowResize(soso::WindowResizeEvent& event) {
+		
+		return true;
 	}
 
 	void OnImGuiRender() override {
@@ -101,12 +97,20 @@ public:
 		if (ImGui::BeginMenuBar()) {
 			if (ImGui::BeginMenu("File"))
 			{
-				//if (ImGui::MenuItem("Exit")) soso::Application::Get().Close();
+				if (ImGui::MenuItem("Exit")) soso::Application::Get().Close();
 
 				ImGui::EndMenu();
 			}
 
 			ImGui::EndMenuBar();
+		}
+
+		ImGui::Begin("Stats");
+		{
+			
+			ImGui::Text("FPS: %.2f", soso::Application::Get().GetFPS());
+
+			ImGui::End();
 		}
 
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
@@ -152,10 +156,6 @@ private:
 	std::shared_ptr<soso::FrameBuffer> m_FrameBuffer;
 	glm::vec2 m_ViewportSize = { 0.0f, 0.0f };
 	//glm::vec2 m_ViewportBounds[2];
-
-	double m_LastFrameTime = 0;
-
-
 
 private:
 	std::unique_ptr<soso::Layer> m_RuntimeLayer;

@@ -2,7 +2,7 @@
 #include <soso.h>
 
 #include <so-so/Asset/TextureImporter.h>
-#include "so-so/Renderer/Mesh.h"
+#include "so-so/Renderer/MeshGenerator.h"
 #include "Misc/Skybox.h"
 
 #include "glm/ext.hpp"
@@ -41,10 +41,21 @@ public:
 			height = (float)soso::Application::Get().GetWindow().GetHeight();
 		m_Camera = soso::SceneCamera(80.0, width, height, 0.1f, 100000.0f);
 
+		m_ShaderLibrary = soso::Renderer::GetShaderLibrary();
+		//m_Mesh = soso::MeshGenerator::GeneratePlane(10, 25);
+		m_Mesh = soso::Mesh::Create("assets/sponzaDab/sponza.obj");
 		
-		m_Mesh = std::make_shared<soso::Mesh>("assets/backpack/backpack.obj");
+		//m_Mesh->DumpBufferInfo();
+
+
+		if (const auto& shader = m_ShaderLibrary->Get("Debug")) {
+
+			m_DebugMaterial = soso::Material::Create(shader);
+		}
 		
-		m_Mesh->DumpBufferInfo();
+
+		if (m_DebugMaterial)
+			SS_TRACE("Debug Mat Loaded");
 
 		m_TexCube = soso::TextureImporter::LoadTextureCube({
 			"assets/textures/Skybox/skybox/right.jpg",
@@ -69,8 +80,8 @@ public:
 		soso::Renderer::BeginScene(m_Camera);
 		{
 
-			soso::Renderer::SubmitMesh(m_Mesh, m_MeshTransform.GetMatrix());
 			m_Skybox.Draw();
+			soso::Renderer::SubmitMesh(m_Mesh, m_MeshTransform.GetMatrix());
 			
 		}
 		soso::Renderer::EndScene();
@@ -111,6 +122,7 @@ private:
 
 	Transform m_MeshTransform{};
 	std::shared_ptr<soso::Mesh> m_Mesh;
+	std::shared_ptr<soso::Material> m_DebugMaterial = nullptr;
 
 	std::shared_ptr<soso::TextureCube> m_TexCube;
 	Skybox m_Skybox;
@@ -119,5 +131,5 @@ private:
 	
 	int m_TileScale{ 1 };
 	//---------------------------------------------
-	soso::ShaderLibrary m_ShaderLibrary;
+	std::shared_ptr<soso::ShaderLibrary> m_ShaderLibrary;
 };
