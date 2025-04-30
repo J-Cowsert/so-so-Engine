@@ -3,28 +3,34 @@
 
 layout(location = 0) in vec3 a_Position;
 
-out vec3 v_TexCoords;
+layout(std140, binding = 0) uniform Camera {
+    mat4 u_ViewProjection;
+    mat4 u_RotationOnlyViewProjection;
+};
 
-uniform mat4 u_ViewProjection;
-
+layout(location = 0) out VertexData {
+    vec3 v_TexCoords;
+};
 
 void main()
 {
  
     v_TexCoords = a_Position;
    
-    gl_Position = (u_ViewProjection * vec4(a_Position, 1.0)).xyww;
+    gl_Position = (u_RotationOnlyViewProjection * vec4(a_Position, 1.0)).xyww;
 }
 
 #type fragment
 #version 450 core
 
-in vec3 v_TexCoords;
+layout(location = 0) out vec4 Output;
 
-out vec4 color;
+layout(location = 0) in VertexData {
+    vec3 v_TexCoords;
+};
 
-uniform samplerCube u_Skybox;
+layout(binding = 0) uniform samplerCube u_Skybox;
 
 void main() {
-    color = texture(u_Skybox, v_TexCoords);
+    Output = texture(u_Skybox, v_TexCoords);
 }	
