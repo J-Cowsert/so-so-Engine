@@ -8,7 +8,7 @@ namespace soso {
 
 	class OpenGLTexture2D : public Texture2D {
 	public:
-		OpenGLTexture2D(const TextureConfig& config, Buffer data = Buffer());
+		OpenGLTexture2D(const TextureConfig& config, ByteBuffer data = ByteBuffer());
 		~OpenGLTexture2D();
 
 		const TextureConfig& GetConfig() const override { return m_Config; }
@@ -17,7 +17,7 @@ namespace soso {
 		uint32_t GetHeight() const override { return m_Height; }
 		uint32_t GetRendererID() const override { return m_RendererID; }
 
-		void SetData(Buffer data) override;
+		void SetData(ByteBuffer data) override;
 
 		void Bind(uint32_t slot = 0) const override;
 
@@ -40,7 +40,7 @@ namespace soso {
 
 	class OpenGLTextureCube : public TextureCube {
 	public:
-		OpenGLTextureCube(const TextureConfig& config, const std::array<Buffer, 6>& data);
+		OpenGLTextureCube(const TextureConfig& config, const std::array<ByteBuffer, 6>& data);
 		virtual ~OpenGLTextureCube();
 
 		const TextureConfig& GetConfig() const override { return m_Config; }
@@ -58,8 +58,8 @@ namespace soso {
 			return m_RendererID == other.GetRendererID();
 		}
 
-		void SetData(const std::array<Buffer, 6>& data);
-		void SetData(Buffer data) override { SS_CORE_ASSERT(false, "Use SetData with cube map data (6 faces)"); }
+		void SetData(const std::array<ByteBuffer, 6>& data);
+		void SetData(ByteBuffer data) override { SS_CORE_ASSERT(false, "Use SetData with cube map data (6 faces)"); }
 
 	private:
 		TextureConfig m_Config;

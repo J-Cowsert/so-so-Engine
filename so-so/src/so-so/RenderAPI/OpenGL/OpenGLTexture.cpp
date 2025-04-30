@@ -38,7 +38,7 @@ namespace soso {
 	}
 
 	// All of this stuff needs to be rewritten a better way.
-	OpenGLTexture2D::OpenGLTexture2D(const TextureConfig& config, Buffer data)
+	OpenGLTexture2D::OpenGLTexture2D(const TextureConfig& config, ByteBuffer data)
 		: m_Config(config), m_Width(m_Config.Width), m_Height(m_Config.Height) {
 
 		m_InternalFormat = Utils::SosoImageFormatToGLInternalFormat(m_Config.Format);
@@ -46,10 +46,10 @@ namespace soso {
 
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_RendererID);
 
-		int levels = 1;
+		uint32_t levels = Utils::CalculateMipMapCount(m_Width, m_Height);
 
 		// Forcing gl_SRGB8 for now
-		glTextureStorage2D(m_RendererID, levels, GL_SRGB8, m_Width, m_Height);
+		glTextureStorage2D(m_RendererID, levels, m_InternalFormat, m_Width, m_Height);
 
 		glTextureParameteri(m_RendererID, GL_TEXTURE_MIN_FILTER, levels > 1 ? GL_LINEAR_MIPMAP_LINEAR : GL_LINEAR);
 		glTextureParameteri(m_RendererID, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -58,11 +58,12 @@ namespace soso {
 		glTextureParameteri(m_RendererID, GL_TEXTURE_WRAP_T, GL_REPEAT);
 
 		glTextureSubImage2D(m_RendererID, 0, 0, 0, m_Width, m_Height, GL_RGB, GL_UNSIGNED_BYTE, data.Data);
-		glGenerateTextureMipmap(m_RendererID);
 
 		if (data)
 			SetData(data);
 
+		glGenerateTextureMipmap(m_RendererID);
+		
 		m_IsLoaded = true;
 	}
 
@@ -71,7 +72,7 @@ namespace soso {
 		glDeleteTextures(1, &m_RendererID);
 	}
 
-	void OpenGLTexture2D::SetData(Buffer data) {
+	void OpenGLTexture2D::SetData(ByteBuffer data) {
 
 		uint32_t bpp = m_DataFormat == GL_RGBA ? 4 : 3;
 		SS_CORE_ASSERT(data.Size == m_Width * m_Height * bpp, "Data must be entire texture!");
@@ -85,7 +86,7 @@ namespace soso {
 
 	//----------------------------------------------------------------------------------------------------------------
 
-	OpenGLTextureCube::OpenGLTextureCube(const TextureConfig& config, const std::array<Buffer, 6>& data)
+	OpenGLTextureCube::OpenGLTextureCube(const TextureConfig& config, const std::array<ByteBuffer, 6>& data)
 		: m_Config(config), m_Width(config.Width), m_Height(config.Height) {
 
 			m_InternalFormat = Utils::SosoImageFormatToGLInternalFormat(config.Format);
@@ -110,7 +111,7 @@ namespace soso {
 			m_IsLoaded = true;
 	}
 
-	void OpenGLTextureCube::SetData(const std::array<Buffer, 6>& data) {
+	void OpenGLTextureCube::SetData(const std::array<ByteBuffer, 6>& data) {
 
 		uint32_t bpp = (m_DataFormat == GL_RGBA || m_DataFormat == GL_RGBA8 || m_DataFormat == GL_RGBA32F) ? 4 : (m_DataFormat == GL_RGB || m_DataFormat == GL_RGB8) ? 3 : 1;
 
