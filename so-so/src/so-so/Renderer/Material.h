@@ -6,28 +6,33 @@
 
 namespace soso {
 
-	// Temporary for testing
+	enum class MaterialFlag {
+
+		None = BIT(0),
+		DepthTest = BIT(1),
+		Blend = BIT(2),
+		TwoSided = BIT(3)
+	};
+
 	class Material {
 	public:
-		Material(const std::shared_ptr<Shader>& shader);
-		~Material() = default;
-
-		void Bind();
-
-		std::shared_ptr<Shader> GetShader() const { return m_Shader; }
-
-		void SetDiffuseMap(const std::shared_ptr<Texture2D>& diffuseMap) { m_DiffuseMap = diffuseMap; }
-		void SetSpecularMap(const std::shared_ptr<Texture2D>& specularMap) { m_SpecularMap = specularMap; }
-		void SetShininess(float shininess) { m_Shininess = shininess; }
-
-	public:
-		static std::shared_ptr<Material> Create(const std::shared_ptr<Shader>& shader);
+		static std::shared_ptr<Material> Create(const std::shared_ptr<Shader>& shader, const std::string& name = "");
+		virtual ~Material() = default;
 	
-	private:
-		std::shared_ptr<Shader> m_Shader;
-
-		std::shared_ptr<Texture2D> m_DiffuseMap;
-		std::shared_ptr<Texture2D> m_SpecularMap;
-		float m_Shininess;
+		virtual void Bind() = 0;
+	
+		virtual std::shared_ptr<Shader> GetShader() const = 0;
+		virtual uint8_t GetFlags() const = 0;
+	
+		virtual void Set(const std::string& name, const float value) = 0;
+		virtual void Set(const std::string& name, const int value) = 0;
+		virtual void Set(const std::string& name, const glm::vec2 value) = 0;
+		virtual void Set(const std::string& name, const glm::vec3 value) = 0;
+		virtual void Set(const std::string& name, const glm::vec4 value) = 0;
+		virtual void Set(const std::string& name, const glm::mat2 value) = 0;
+		virtual void Set(const std::string& name, const glm::mat3 value) = 0;
+		virtual void Set(const std::string& name, const glm::mat4 value) = 0;
+	 
+		virtual void Set(const std::string& name, const std::shared_ptr<Texture2D>& texture) = 0;
 	};
 }
