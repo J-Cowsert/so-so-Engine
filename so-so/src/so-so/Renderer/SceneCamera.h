@@ -36,13 +36,7 @@ namespace soso {
 
 		const glm::vec3& GetFocalPoint() const { return m_FocalPoint; }
 
-		inline void SetViewportSize(uint32_t width, uint32_t height) {
-			if (m_ViewportWidth == width && m_ViewportHeight == height)
-				return;
-			SetPerspectiveProjection(m_VerticalFOV, (float)width, (float)height, m_NearClip, m_FarClip);
-			m_ViewportWidth = width;
-			m_ViewportHeight = height;
-		}
+		void SetViewportSize(uint32_t width, uint32_t height);
 
 		const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
 		glm::mat4 GetViewProjection() const { return GetProjection() * m_ViewMatrix; }
