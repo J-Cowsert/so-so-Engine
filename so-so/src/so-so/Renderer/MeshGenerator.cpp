@@ -11,7 +11,7 @@ namespace soso {
         resolution = glm::max(1, resolution);
 
         const float step = size / static_cast<float>(resolution);
-        const float startPos = -size * 0.5;
+        const float startPos = -size * 0.5f;
         const int rowLen = resolution + 1;
  
         float currX, currZ;
@@ -44,9 +44,9 @@ namespace soso {
                 uint32_t v3 = (i + 1) * rowLen + (j + 1);
                 uint32_t v4 = i * rowLen + (j + 1);
 
-                // Make sure winding order is ccw
-                indices.emplace_back(Index{ v1, v2, v3 });
-                indices.emplace_back(Index{ v1, v3, v4 });
+                // CCW winding order
+                indices.emplace_back(Index{ v1, v3, v2 });
+                indices.emplace_back(Index{ v1, v4, v3 });
             }
         }
 
