@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core.h"
+#include "Core.h"
 
 // Ignore warnings from spdlog's external libraries
 #pragma warning(push, 0)
