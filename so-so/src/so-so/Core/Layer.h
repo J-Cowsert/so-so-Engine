@@ -1,8 +1,8 @@
 #pragma once
 
-#include "core.h"
+#include "Core.h"
 #include "Timestep.h"
-#include "../Events/Event.h"
+#include "so-so/Events/Event.h"
 
 namespace soso {
 

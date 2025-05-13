@@ -24,6 +24,8 @@
 	#define SS_DEBUGBREAK() raise(SIGTRAP)
 #endif // SS_PLATFORM_WINDOWS
 
+#include "Log.h"
+
 #ifdef SS_DEBUG
 	#define SS_CORE_ASSERTS
 #endif

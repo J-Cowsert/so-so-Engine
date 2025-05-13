@@ -1,11 +1,11 @@
 #pragma once
 
-#include "core.h"
+#include "Core.h"
 
 
 namespace soso {
 
-	// Unique ID - Randomly generated 64 bit integer.
+	// Unique Identifier - Randomly generated 64 bit integer.
 
 	class UID {
 	public:
