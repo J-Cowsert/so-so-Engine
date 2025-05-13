@@ -1,12 +1,10 @@
-#include "sspch.h"
+﻿#include "sspch.h"
+
 #include "Window.h"
-
 #include "so-so/Core/Log.h"
-
 #include "so-so/Events/ApplicationEvent.h"
 #include "so-so/Events/KeyEvent.h"
 #include "so-so/Events/MouseEvent.h"
-
 
 // TODO: Make this api agnostic. We shouldnt be using OpenGLContext directly
 #include "so-so/RenderAPI/OpenGL/OpenGLContext.h"
@@ -36,9 +34,10 @@ namespace soso {
 		m_Data.Title = config.Title;
 		m_Data.Width = config.Width;
 		m_Data.Height = config.Height;
+		m_Data.Fullscreen = config.Fullscreen;
 		m_Data.VSync = config.VSync;
 
-		SS_CORE_INFO("Creating window {0} ({1}, {2})", config.Title, config.Width, config.Height);
+		SS_CORE_INFO("Creating window {0} ({1}, {2})", m_Data.Title, m_Data.Width, m_Data.Height);
 
 		if (!s_GLFWInitialized) {
 
@@ -48,16 +47,29 @@ namespace soso {
 			s_GLFWInitialized = true;
 		}
 
-		m_Window = glfwCreateWindow((int)config.Width, (int)config.Height, m_Data.Title.c_str(), config.Fullscreen ? glfwGetPrimaryMonitor() : nullptr, nullptr);
+		if (m_Data.Fullscreen) {
 
-		//TODO: Make api agnostic
-		m_Context = new OpenGLContext(m_Window);
+			GLFWmonitor* primaryMonitor = glfwGetPrimaryMonitor();
+			const GLFWvidmode* mode = glfwGetVideoMode(primaryMonitor);
+
+			glfwWindowHint(GLFW_DECORATED, false);
+			glfwWindowHint(GLFW_RED_BITS, mode->redBits);
+			glfwWindowHint(GLFW_GREEN_BITS, mode->greenBits);
+			glfwWindowHint(GLFW_BLUE_BITS, mode->blueBits);
+			glfwWindowHint(GLFW_REFRESH_RATE, mode->refreshRate);
+
+			m_Window = glfwCreateWindow(mode->width, mode->height, m_Data.Title.c_str(), primaryMonitor, nullptr);
+		}
+		else {
+
+			m_Window = glfwCreateWindow((int)m_Data.Width, (int)m_Data.Height, m_Data.Title.c_str(), nullptr, nullptr);
+		}
+
+		m_Context = new OpenGLContext(m_Window); // TODO: Make api agnostic
 		m_Context->Init();
 
 		glfwSetWindowUserPointer(m_Window, &m_Data);
 		SetVSync(m_Data.VSync);
-
-		//glfwWindowHint(GLFW_SAMPLES, 4); // Multi-Sampling
 
 		// GLFW callbacks
 		glfwSetWindowSizeCallback(m_Window, [](GLFWwindow* window, int width, int height) {
@@ -171,7 +183,60 @@ namespace soso {
 		m_Data.VSync = enabled;
 	}
 
+	bool Window::IsFullscreen() const {
+		return m_Data.Fullscreen;
+	}
+
 	bool Window::IsVSync() const {
 		return m_Data.VSync;
+	}
+
+	void Window::Maximize() {
+		glfwMaximizeWindow(m_Window);
+	}
+
+	void Window::SetFullscreen(bool enabled) {
+		
+		if (enabled == m_Data.Fullscreen)
+			return;
+
+		if (enabled) {
+
+			int tx, ty;
+			glfwGetWindowPos(m_Window, &tx, &ty);
+			m_Data.WindowedX = static_cast<uint32_t>(tx);
+			m_Data.WindowedY = static_cast<uint32_t>(ty);
+
+			int tw, th;
+			glfwGetWindowSize(m_Window, &tw, &th);
+			m_Data.WindowedWidth = static_cast<uint32_t>(tw);
+			m_Data.WindowedHeight = static_cast<uint32_t>(th);
+
+			GLFWmonitor* monitor = glfwGetPrimaryMonitor();
+			const GLFWvidmode* mode = glfwGetVideoMode(monitor);
+
+			glfwSetWindowMonitor(
+				m_Window,
+				monitor,
+				0, 0,                            // top‐left of the monitor
+				mode->width,
+				mode->height,
+				mode->refreshRate
+			);
+		}
+		else {
+			// — Restoring windowed —
+			glfwSetWindowMonitor(
+				m_Window,
+				nullptr,                        // NULL = windowed
+				m_Data.WindowedX,
+				m_Data.WindowedY,
+				m_Data.WindowedWidth,
+				m_Data.WindowedHeight,
+				0                               // leave refresh rate untouched
+			);
+		}
+
+		m_Data.Fullscreen = enabled;
 	}
 }

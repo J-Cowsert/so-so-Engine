@@ -1,23 +1,20 @@
 #pragma once
-
 #include "sspch.h"
 
-#include "so-so/Core/core.h"
+#include "so-so/Core/Core.h"
 #include "so-so/Events/Event.h"
-
 #include "so-so/Renderer/GraphicsContext.h"
+
 #include <GLFW/glfw3.h>
 
 
 namespace soso {
 
-	// TODO: Implement Fullscreen / Decorated 
 	struct WindowConfig {
+
 		std::string Title = "so-so";
-		uint32_t Width = 1920;
-		uint32_t Height = 1080;
+		uint32_t Width = 1920, Height = 1080;
 		bool Fullscreen = false;
-		bool Decorated = true;
 		bool VSync = true;
 	};
 
@@ -27,24 +24,29 @@ namespace soso {
 
 	public:
 		Window(const WindowConfig& config);
-		virtual ~Window();
+		~Window();
 
-		virtual void OnUpdate();
+		void OnUpdate();
 
-		virtual uint32_t GetWidth() const { return m_Data.Width; }
-		virtual uint32_t GetHeight() const { return m_Data.Height; }
+		uint32_t GetWidth() const { return m_Data.Width; }
+		uint32_t GetHeight() const { return m_Data.Height; }
 
-		virtual void SetEventCallback(const EventCallbackFunction& callback) { m_Data.EventCallback = callback; }
-		virtual void SetVSync(bool enabled);
-		virtual bool IsVSync() const;
+		void SetEventCallback(const EventCallbackFunction& callback) { m_Data.EventCallback = callback; }
+		
+		void Maximize();
 
-		virtual void* GetNativeWindow() const { return m_Window; }
+		void SetFullscreen(bool enabled);
+		void SetVSync(bool enabled);
+		bool IsFullscreen() const;
+		bool IsVSync() const;
+
+		void* GetNativeWindow() const { return m_Window; }
 
 		static Window* Create(const WindowConfig& config = WindowConfig());
 
 	private:
-		virtual void Init(const WindowConfig& config);
-		virtual void Shutdown();
+		void Init(const WindowConfig& config);
+		void Shutdown();
 
 	private:
 		GLFWwindow* m_Window;
@@ -53,8 +55,12 @@ namespace soso {
 		struct WindowData {
 
 			std::string Title;
-			unsigned int Width, Height;
+			uint32_t Width, Height;
+			bool Fullscreen;
 			bool VSync;
+
+			// Keep track of position and size when switching from windowed to fullscreen. 
+			uint32_t WindowedX, WindowedY, WindowedWidth, WindowedHeight;
 
 			EventCallbackFunction EventCallback;
 		};
