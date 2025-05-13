@@ -5,7 +5,7 @@
 
 namespace soso {
 
-	// Non-owning raw buffer class
+	// Non-owning raw buffer class : You are responsible for releasing memory
 
 	struct ByteBuffer {
 
@@ -14,13 +14,17 @@ namespace soso {
 
 		ByteBuffer() = default;
 
-		ByteBuffer(uint64_t size) {
-			Allocate(size);
-		}
-
 		ByteBuffer(const void* data, uint64_t size = 0)
 			: Data((void*)data), Size(size)
 		{
+		}
+
+		static ByteBuffer Copy(const void* data, uint64_t size) {
+
+			ByteBuffer buffer;
+			buffer.Allocate(size);
+			memcpy(buffer.Data, data, size);
+			return buffer;
 		}
 
 		void Allocate(uint64_t size) {
@@ -47,7 +51,7 @@ namespace soso {
 		void Write(const void* data, uint64_t size, uint64_t offset = 0) {
 
 			SS_CORE_ASSERT(size + offset <= Size, "Buffer Overflow");
-			memcpy((uint8_t*)Data + offset, data, size);
+			memcpy(reinterpret_cast<uint8_t*>(Data) + offset, data, size);
 		}
 
 		template<typename T>
