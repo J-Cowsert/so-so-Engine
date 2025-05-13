@@ -1,6 +1,5 @@
 #pragma once
 
-#include "so-so/Core/core.h"
 #include "so-so/Core/Application.h"
 
 #ifdef SS_PLATFORM_WINDOWS
