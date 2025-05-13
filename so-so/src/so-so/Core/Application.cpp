@@ -5,7 +5,7 @@
 #include "Input.h"
 #include "Utils.h"
 #include "so-so/Renderer/Renderer.h"
-#include "glad/glad.h"
+#include "glad/glad.h" // This shouldnt be here
 
 namespace soso {
 
@@ -21,6 +21,7 @@ namespace soso {
 
 		WindowConfig config;
 		config.Fullscreen = false;
+
 		m_Window = std::unique_ptr<Window>(Window::Create(config));
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
 
@@ -62,9 +63,6 @@ namespace soso {
 	void Application::Run() {
 
 		while (m_Running) {
-
-			RenderCommand::SetClearColor({ 0.2f, 0.2f, 0.2f, 1.0f });
-			RenderCommand::Clear();
 			
 			float time = Time::GetTime();
 			Timestep timestep = time - m_LastFrameTime;

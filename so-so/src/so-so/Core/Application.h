@@ -1,6 +1,6 @@
 #pragma once
 
-#include "core.h"
+#include "Core.h"
 #include "Window.h"
 #include "LayerStack.h"
 #include "Timestep.h"
@@ -25,6 +25,15 @@ namespace soso {
 		void Close() { m_Running = false; }
 
 		void OnEvent(Event& e);
+
+		template<typename T, typename... Args>
+		void PushLayer(Args&&... args) {
+			static_assert(std::is_base_of<Layer, T>::value, "Pushed type is not subclass of Layer");
+			static_assert(std::is_constructible_v<T, Args...>, "Layer type T is not constructible with the given arguments");
+			T* layer = new T(std::forward<Args>(args)...);
+			m_LayerStack.PushLayer(layer);
+			layer->OnAttach();
+		}
 
 		void PushLayer(Layer* layer);
 		void PushOverlay(Layer* overlay);
