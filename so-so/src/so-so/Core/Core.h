@@ -16,13 +16,21 @@
 	#define SS_COMPILER_MSVC
 #endif
 
-#ifdef SS_PLATFORM_WINDOWS
+#if defined(SS_COMPILER_CLANG)
+	#define SS_FORCE_INLINE __attribute__((always_inline))
+#elif defined(SS_COMPILER_GCC)
+	#define SS_FORCE_INLINE __attribute__((always_inline)) inline
+#elif defined(SS_COMPILER_MSVC)
+	#define SS_FORCE_INLINE __forceinline
+#endif
+
+#if defined(SS_PLATFORM_WINDOWS)
 	#define SS_DEBUGBREAK() __debugbreak()
 
 #elif defined(SS_PLATFORM_LINUX)
 	#include <signal.h>
 	#define SS_DEBUGBREAK() raise(SIGTRAP)
-#endif // SS_PLATFORM_WINDOWS
+#endif
 
 #include "Log.h"
 
