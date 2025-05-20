@@ -2,12 +2,16 @@
 // https://github.com/KhronosGroup/SPIRV-Cross/wiki/Reflection-API-user-guide
 #include "sspch.h"
 #include "OpenGLShader.h"
+
+#include "so-so/Core/Timer.h"
+#include "so-so/Renderer/UniformBuffer.h"
+
 #include <glm/gtc/type_ptr.hpp>
 #include <filesystem>
 #include <format>
 
 #include <shaderc/shaderc.hpp>
-#include <file_finder.h>
+#include <file_finder.h> // TODO: look into usage
 #include <spirv_cross.hpp>
 #include <spirv_glsl.hpp>
 
@@ -90,6 +94,7 @@ namespace soso {
 		}
 
 		static const char* GLTypeToString(GLenum type) {
+
 			switch (type) {
 			case GL_FLOAT: return "float";
 			case GL_FLOAT_VEC2: return "vec2";
@@ -109,6 +114,7 @@ namespace soso {
 		}
 
 		static uint32_t GLTypeSize(GLenum type) {
+
 			switch (type) {
 			case GL_BOOL:
 			case GL_INT:
@@ -124,6 +130,7 @@ namespace soso {
 		}
 
 		static ShaderUniformType GLTypeToShaderUniformType(GLenum type) {
+
 			switch (type) {
 			case GL_BOOL:           return ShaderUniformType::Bool;
 			case GL_INT:
@@ -141,11 +148,16 @@ namespace soso {
 		}
 
 		static const char* ShaderUniformTypeToString(ShaderUniformType type) {
+
 			switch (type) {
 			case ShaderUniformType::None:  return "None";
 			case ShaderUniformType::Bool:  return "Bool";
-			case ShaderUniformType::Int:   return "Int";
 			case ShaderUniformType::Float: return "Float";
+			case ShaderUniformType::Int:   return "Int";
+			case ShaderUniformType::UInt:  return "UInt";
+			case ShaderUniformType::IVec2: return "IVec2";
+			case ShaderUniformType::IVec3: return "IVec3";
+			case ShaderUniformType::IVec4: return "IVec4";
 			case ShaderUniformType::Vec2:  return "Vec2";
 			case ShaderUniformType::Vec3:  return "Vec3";
 			case ShaderUniformType::Vec4:  return "Vec4";
@@ -172,6 +184,7 @@ namespace soso {
 		}
 
 		static const char* GLShaderStageCachedFileExtension(ShaderStage source) {
+
 			switch (source) {
 			case ShaderStage::Vertex:    return ".cached.vert";
 			case ShaderStage::Fragment:  return ".cached.frag";
@@ -181,6 +194,7 @@ namespace soso {
 		}
 
 		static const char* GLShaderStageCachedVulkanFileExtension(ShaderStage stage) {
+
 			switch (stage) {
 			case ShaderStage::Vertex:    return ".cached_vulkan.vert";
 			case ShaderStage::Fragment:  return ".cached_vulkan.frag";
@@ -190,12 +204,14 @@ namespace soso {
 		}
 
 		static void CreateCacheDirectoryIfNeeded() {
+
 			std::string cacheDirectory = GetCacheDirectory();
 			if (!std::filesystem::exists(cacheDirectory))
 				std::filesystem::create_directories(cacheDirectory);
 		}
 
 		static ShaderUniformType SPIRTypeToShaderUniformType(spirv_cross::SPIRType type) {
+
 			switch (type.basetype) {
 			case spirv_cross::SPIRType::Boolean:  return ShaderUniformType::Bool;
 			case spirv_cross::SPIRType::Int:
@@ -221,42 +237,73 @@ namespace soso {
 	}
 
 	OpenGLShader::OpenGLShader(const std::string& filepath) 
-		: m_Filepath(filepath) {
-
-		Utils::CreateCacheDirectoryIfNeeded();
-
-		std::string source = ReadFile(filepath);
-		auto sources = PreProcess(source);
-		Compile(sources);
-
-
+		: m_Filepath(filepath) 
+	{
 		auto lastSlash = filepath.find_last_of("/\\");
 		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
 		auto lastDot = filepath.rfind('.');
 		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
 
 		m_Name = filepath.substr(lastSlash, count);
-	
+
+		Utils::CreateCacheDirectoryIfNeeded();
+
+		std::string source = ReadFile(filepath);
+		auto sources = PreProcess(source);
+		
+		auto success = Compile(sources);
+
+		if (!success) {
+			SS_CORE_ERROR(success.error());
+			SS_CORE_ASSERT(false, "");
+		}
+
+		UploadToGPU();
+		CreateUniformBufferObjects();
 	}
 
 	OpenGLShader::OpenGLShader(const std::string& name, const std::string& vertexSource, const std::string& fragmentSource)
-		: m_Name(name) {
-
+		: m_Name(name) 
+	{
 		Utils::CreateCacheDirectoryIfNeeded();
 
 		std::unordered_map<ShaderStage, std::string> sources;
 		sources[ShaderStage::Vertex] = vertexSource;
 		sources[ShaderStage::Fragment] = fragmentSource;
 
-		Compile(sources);
+		auto success = Compile(sources);
+
+		if (!success) {
+			SS_CORE_ERROR(std::string(success.error()));
+			SS_CORE_ASSERT(false, "");
+		}
+
+		UploadToGPU();
+		CreateUniformBufferObjects();
 	}
 
 	OpenGLShader::~OpenGLShader() {
 		glDeleteProgram(m_RendererID);
 	}
 
-	void OpenGLShader::Reload() const {
+	void OpenGLShader::Reload() {
 
+		std::string source = ReadFile(m_Filepath);
+		auto sources = PreProcess(source);
+
+		auto success = Compile(sources, true);
+
+		if (!success) {
+			SS_CORE_ERROR(success.error());
+			return;
+		}
+
+		auto oldRendererID = m_RendererID;
+
+		UploadToGPU();
+		CreateUniformBufferObjects();
+		
+		glDeleteProgram(oldRendererID);
 	}
 
 	std::string OpenGLShader::ReadFile(const std::string& filepath) {
@@ -305,12 +352,16 @@ namespace soso {
 			shaderSources[Utils::StringToSosoShaderStage(type)] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
 		}
 
+		m_ShaderStageSources = shaderSources;
+
 		return shaderSources;
 	}
 
-	void OpenGLShader::Compile(std::unordered_map<ShaderStage, std::string> shaderSources, bool forceReload) {
+	std::expected<void, std::string> OpenGLShader::Compile(std::unordered_map<ShaderStage, std::string> shaderSources, bool forceReload) {
 		
-		SS_CORE_WARN("Compiling shader - {0}", m_Filepath);
+		ScopedTimer timer("Shader::Compile()");
+
+		SHADER_DEBUG("Compiling shader - {0}", m_Filepath);
 
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
@@ -341,18 +392,22 @@ namespace soso {
 			}
 			else {
 				
-				// Compile and store in buffer
+				// Compile and cache
 				shaderc::SpvCompilationResult module = compiler.CompileGlslToSpv(source, Utils::GLShaderStageToShaderC(Utils::SosoShaderStageToGLShaderStage(stage)), m_Filepath.c_str(), options);
+				
 				if (module.GetCompilationStatus() != shaderc_compilation_status_success) {
-					SS_CORE_ERROR(module.GetErrorMessage());
-					SS_CORE_ASSERT(false, Utils::SosoShaderStageToString(stage));
+
+					std::string error = std::format("{} - {}", Utils::SosoShaderStageToString(stage), module.GetErrorMessage());
+					return std::unexpected(error);
 				}
 
 				shaderData[stage] = std::vector<uint32_t>(module.cbegin(), module.cend());
 
 				// Write binary to cache file
 				std::ofstream out(cachePath, std::ios::out | std::ios::binary);
+
 				if (out.is_open()) {
+
 					auto& data = shaderData[stage];
 					out.write((char*)data.data(), data.size() * sizeof(uint32_t));
 					out.flush();
@@ -366,8 +421,13 @@ namespace soso {
 			Reflect(stage, data);
 		}
 
+		return {};
+	}
 
-		// Upload shaders to GPU
+	void OpenGLShader::UploadToGPU() {
+
+		auto& shaderData = m_OpenGLSpirv;
+
 		GLuint program = glCreateProgram();
 
 		// Create shaders from spirv binary and link them into program
@@ -375,13 +435,13 @@ namespace soso {
 		for (auto&& [stage, data] : shaderData) {
 
 			GLuint shaderID = shaderIDs.emplace_back(glCreateShader(Utils::SosoShaderStageToGLShaderStage(stage)));
-			glShaderBinary(1, &shaderID, GL_SHADER_BINARY_FORMAT_SPIR_V, data.data(), data.size() * sizeof(uint32_t));
+			glShaderBinary(1, &shaderID, GL_SHADER_BINARY_FORMAT_SPIR_V, data.data(), (GLsizei)data.size() * sizeof(uint32_t));
 			glSpecializeShader(shaderID, "main", 0, nullptr, nullptr);
 			glAttachShader(program, shaderID);
 		}
 
 		glLinkProgram(program);
-		
+
 		GLint isLinked;
 		glGetProgramiv(program, GL_LINK_STATUS, &isLinked);
 
@@ -403,6 +463,7 @@ namespace soso {
 		}
 
 		for (auto ID : shaderIDs) {
+
 			glDetachShader(program, ID);
 			glDeleteShader(ID);
 		}
@@ -410,17 +471,12 @@ namespace soso {
 		m_RendererID = program;
 	}
 
-	void OpenGLShader::Upload() {
-
-		// TODO
-	}
-
 	void OpenGLShader::Reflect(ShaderStage stage, const std::vector<uint32_t>& shaderData) {
 
 		spirv_cross::Compiler compiler(shaderData);
 		spirv_cross::ShaderResources resources = compiler.get_shader_resources();
 
-		SS_CORE_WARN("OpenGLShader::Reflect - {0} - {1}", Utils::SosoShaderStageToString(stage), m_Filepath);
+		SHADER_DEBUG("OpenGLShader::Reflect - {0} - {1}", Utils::SosoShaderStageToString(stage), m_Filepath);
 		SHADER_DEBUG("    {0} uniform buffers", resources.uniform_buffers.size());
 		SHADER_DEBUG("    {0} resources", resources.sampled_images.size());
 
@@ -437,7 +493,7 @@ namespace soso {
 				uint32_t    binding = compiler.get_decoration(resource.id, spv::DecorationBinding);
 				uint32_t    index = compiler.get_decoration(resource.id, spv::DecorationIndex);
 				uint32_t    bufferSize = (uint32_t)compiler.get_declared_struct_size(bufferType);
-				int         memberCount = (uint32_t)bufferType.member_types.size();
+				uint32_t    memberCount = (uint32_t)bufferType.member_types.size();
 
 				SHADER_DEBUG("  {0}", blockName);
 				SHADER_DEBUG("    Size = {0}", bufferSize);
@@ -445,19 +501,20 @@ namespace soso {
 				SHADER_DEBUG("    Members = {0}", memberCount);
 
 				// Create ShaderBuffer and pass into reflection data. 
-				ShaderBuffer& buffer = m_ReflectionData.ShaderBuffers[blockName];
+				ShaderUniformBufferInfo& buffer = m_ReflectionData.ShaderUniformBufferInfo[blockName];
 				buffer.Name = blockName;
 				buffer.Size = bufferSize;
 				buffer.BindingPoint = binding;
+				buffer.RendererID = m_RendererID;
 
 				std::unordered_map<std::string, ShaderUniform>& bufferUniforms = buffer.Uniforms;
-				for (uint32_t i = 0; i < memberCount; ++i) {
+				for (uint32_t i = 0; i < memberCount; i++) {
 
 					// ----- per‑member reflection -----
 					std::string  memberName = compiler.get_member_name(bufferType.self, i);
 					const auto&  memberType = compiler.get_type(bufferType.member_types[i]);
 					uint32_t     offset = compiler.type_struct_member_offset(bufferType, i);
-					uint32_t     size = compiler.get_declared_struct_member_size(bufferType, i);
+					uint32_t     size = (uint32_t)compiler.get_declared_struct_member_size(bufferType, i);
 
 					SHADER_DEBUG("    [{0}] {1}", i, memberName);
 					SHADER_DEBUG("         offset = {0}", offset);
@@ -468,8 +525,6 @@ namespace soso {
 					bufferUniforms[uniformName] = ShaderUniform{ uniformName, Utils::SPIRTypeToShaderUniformType(memberType), size, offset };
 				}
 			}
-
-			//SS_CORE_WARN("m_ShaderBuffers.size() - {0}", m_ReflectionData.ShaderBuffers.size());
 		}
 
 		// ---- Resources ----
@@ -485,17 +540,18 @@ namespace soso {
 
 			SHADER_DEBUG("Sampler `{}` binding {}", name, binding);
 
-			m_ReflectionData.Resources[name] = ShaderResourceInfo{ name, binding };
+			m_ReflectionData.ShaderResourceInfo[name] = ShaderResourceInfo{ name, binding };
 		}
 
 
 		// Debug Print out all reflection data from containers		
 		SHADER_DEBUG("------Reflection ShaderBuffers debug info------");
-		for (const auto& [name, shaderBuffer] : m_ReflectionData.ShaderBuffers) {
+		for (const auto& [name, shaderBuffer] : m_ReflectionData.ShaderUniformBufferInfo) {
 
 			SHADER_DEBUG("Uniform Buffer - Name: {0}, Size: {1}, Binding: {2}", shaderBuffer.Name, shaderBuffer.Size, shaderBuffer.BindingPoint);
 
 			for (const auto& [bufferName, uniform] : shaderBuffer.Uniforms) {
+
 				SHADER_DEBUG("Uniform - Name: {0}, Type: {1}, Size: {2}, Offset: {3}",
 					uniform.GetName(),
 					Utils::ShaderUniformTypeToString(uniform.GetType()),
@@ -505,19 +561,54 @@ namespace soso {
 			}
 		}
 
-		for (const auto& [name, resourceInfo] : m_ReflectionData.Resources) {
+		for (const auto& [name, resourceInfo] : m_ReflectionData.ShaderResourceInfo) {
 
 			SHADER_DEBUG("Resource - Name: {0}, BindingPoint: {1}", resourceInfo.GetName(), resourceInfo.GetBindingPoint());
 		}
 		SHADER_DEBUG("--------------------------------------");
 	}
 
-	void OpenGLShader::Bind() const {
-		glUseProgram(m_RendererID);
+	void OpenGLShader::CreateUniformBufferObjects() {
+		 
+		// Some uniform buffers shouldnt be owned by the shader such as lighting UBOs that the renderer uses.
+		// Since we only need to retrieve Material UBOs currently, lets start there.
+
+		const auto& bufferInfo = m_ReflectionData.ShaderUniformBufferInfo;
+		
+		if (bufferInfo.empty()) return;
+		if (bufferInfo.find("Material") == bufferInfo.end()) return;
+
+
+		const auto& materialUniformBufferInfo = bufferInfo.at("Material");
+		const auto& binding = materialUniformBufferInfo.BindingPoint;
+		const auto& size = materialUniformBufferInfo.Size;
+
+		auto uniformBuffer = UniformBuffer::Create(size, binding);
+		
+		using Key = decltype(s_UniformBuffers)::key_type;
+		Key key{ this, binding };
+
+		s_UniformBuffers[key] = uniformBuffer;
 	}
 
-	void OpenGLShader::Unbind() const {
-		glUseProgram(0);
+	std::shared_ptr<UniformBuffer> OpenGLShader::GetUniformBuffer(uint32_t bindingPoint) const {
+
+		using Key = decltype(s_UniformBuffers)::key_type;
+		Key key{ this, bindingPoint };
+		
+		auto it = s_UniformBuffers.find(key);
+
+		if (it == s_UniformBuffers.end()) {
+
+			SS_CORE_ASSERT(false, "Could not find uniform buffer");
+			return nullptr;
+		}
+
+		return it->second;
+	}
+
+	void OpenGLShader::Bind() const {
+		glUseProgram(m_RendererID);
 	}
 
 	void OpenGLShader::SetUniform(const std::string& name, float value) {
