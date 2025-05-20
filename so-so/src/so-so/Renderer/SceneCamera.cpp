@@ -21,7 +21,10 @@ namespace soso {
 	}
 
 	SceneCamera::SceneCamera(const float degFov, const float width, const float height, const float nearP, const float farP)
-		: Camera(glm::perspectiveFov(glm::radians(degFov), width, height, nearP, farP)), m_FocalPoint(0.0f), m_VerticalFOV(glm::radians(degFov)), m_NearClip(nearP), m_FarClip(farP) 
+		: Camera(glm::perspectiveFov(glm::radians(degFov), width, height, nearP, farP)), 
+		m_FocalPoint(0.0f), 
+		m_VerticalFOV(degFov), 
+		m_NearClip(nearP), m_FarClip(farP) 
 	{
 		Init();
 	}
@@ -48,7 +51,7 @@ namespace soso {
 
 		if (Input::IsMouseButtonPressed(MouseCode::Right) && !Input::IsKeyPressed(KeyCode::LeftAlt)) {
 
-			m_CameraControlMode = CameraControlMode::FLYCAM;
+			m_ControlMode = CameraControlMode::FLYCAM;
 			DisableMouse();
 			const float yawSign = GetUpDirection().y < 0 ? -1.0f : 1.0f;
 
@@ -83,7 +86,7 @@ namespace soso {
 
 		else if (Input::IsKeyPressed(KeyCode::LeftAlt)) {
 
-			m_CameraControlMode = CameraControlMode::ARCBALL;
+			m_ControlMode = CameraControlMode::ARCBALL;
 
 			if (Input::IsMouseButtonPressed(MouseCode::Middle)) {
 
@@ -112,7 +115,7 @@ namespace soso {
 		m_Yaw += m_YawDelta;
 		m_Pitch += m_PitchDelta;
 
-		if (m_CameraControlMode == CameraControlMode::ARCBALL)
+		if (m_ControlMode == CameraControlMode::ARCBALL)
 			m_Position = CalculatePosition();
 
 		UpdateCameraView();
@@ -154,7 +157,7 @@ namespace soso {
 	void SceneCamera::Focus(const glm::vec3& focusPoint) {
 
 		m_FocalPoint = focusPoint;
-		m_CameraControlMode = CameraControlMode::FLYCAM;
+		m_ControlMode = CameraControlMode::FLYCAM; // TODO: look into
 
 		if (m_Distance > m_MinFocusDistance) {
 
@@ -241,12 +244,35 @@ namespace soso {
 		m_PositionDelta += delta * ZoomSpeed() * forwardDir;
 	}
 
+	void SceneCamera::SetCameraProjectionMode(CameraProjectionMode mode) {
+
+		if (mode == m_ProjectionMode) return;
+
+		m_ProjectionMode = mode;
+
+		if (mode == CameraProjectionMode::PERSPECTIVE)
+			SetPerspectiveProjection(m_VerticalFOV, (float)m_ViewportWidth, (float)m_ViewportHeight, m_NearClip, m_FarClip);
+
+		else if (m_ProjectionMode == CameraProjectionMode::ORTHOGRAPHIC) {
+
+			// TODO: FIX - Temporary solution
+			SetOrthographicProjection((float)m_ViewportWidth * 0.02 , (float)m_ViewportHeight * 0.02, m_NearClip, m_FarClip);
+		}
+	}
+
 	void SceneCamera::SetViewportSize(uint32_t width, uint32_t height) {
 
 		if (m_ViewportWidth == width && m_ViewportHeight == height)
 			return;
 
-		SetPerspectiveProjection(m_VerticalFOV, (float)width, (float)height, m_NearClip, m_FarClip);
+		//if (m_ProjectionMode == CameraProjectionMode::PERSPECTIVE)
+			SetPerspectiveProjection(m_VerticalFOV, (float)width, (float)height, m_NearClip, m_FarClip);
+
+		//else if (m_ProjectionMode == CameraProjectionMode::ORTHOGRAPHIC) {
+		//
+		//	SetOrthographicProjection((float)height, (float)width, m_NearClip, m_FarClip);
+		//}
+
 		m_ViewportWidth = width;
 		m_ViewportHeight = height;
 	}
