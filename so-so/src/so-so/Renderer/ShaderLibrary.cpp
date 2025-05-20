@@ -30,6 +30,17 @@ namespace soso {
 		return m_Shaders[name];
 	}
 
+	std::vector<std::shared_ptr<Shader>> ShaderLibrary::GetAll() {
+
+		std::vector<std::shared_ptr<Shader>> result;
+		result.reserve(m_Shaders.size());
+
+		for (const auto& [name, shader] : m_Shaders)
+			result.push_back(shader);
+
+		return result;
+	}
+
 	bool ShaderLibrary::Exists(const std::string& name) const {
 		return m_Shaders.find(name) != m_Shaders.end();
 	}

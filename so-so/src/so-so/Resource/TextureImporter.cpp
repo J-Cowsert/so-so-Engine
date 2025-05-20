@@ -1,5 +1,6 @@
 #include "sspch.h"
 #include "TextureImporter.h"
+
 #include <stb_image.h>
 
 namespace soso {
