@@ -1,11 +1,11 @@
 #include "sspch.h"
-#include "OpenGLRendererAPI.h"
+#include "OpenGLRenderer.h"
 
 #include "glad/glad.h"
 
 namespace soso {
 
-	void OpenGLDebugCallback(
+	static void OpenGLDebugCallback(
 		unsigned source,
 		unsigned type,
 		unsigned id,
@@ -25,7 +25,7 @@ namespace soso {
 		SS_CORE_ASSERT(false, "Unknown severity level!");
 	}
 
-	void OpenGLRendererAPI::Init() {
+	void OpenGLRenderer::Init() {
 
 
 	#ifdef SS_DEBUG
@@ -37,7 +37,7 @@ namespace soso {
 
 		//glEnable(GL_MULTISAMPLE);
 
-		glEnable(GL_CULL_FACE);
+		//glEnable(GL_CULL_FACE);
 		glCullFace(GL_BACK);
 		glFrontFace(GL_CCW);
 
@@ -47,6 +47,8 @@ namespace soso {
 		//glEnable(GL_LINE_SMOOTH);
 		//glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
 		//glEnable(GL_FRAMEBUFFER_SRGB);
+
+		SetClearColor(1, 0, 1, 1);
 
 		GLenum error = glGetError();
 		while (error != GL_NO_ERROR) {
@@ -75,35 +77,39 @@ namespace soso {
 		}
 	}
 
-	void OpenGLRendererAPI::SetDepthFunction(DepthFunction func) {
+	void OpenGLRenderer::SetDepthFunction(DepthFunction func) {
 		glDepthFunc(Utils::ConvertToGLDepthFunc(func));
 	}
 
-	void OpenGLRendererAPI::EnableDepthTest() {
+	void OpenGLRenderer::EnableDepthTest() {
 		glEnable(GL_DEPTH_TEST);
 	}
 
-	void OpenGLRendererAPI::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
+	void OpenGLRenderer::SetViewport(uint32_t x, uint32_t y, uint32_t width, uint32_t height) {
 		glViewport(x, y, width, height);
 	}
 
-	void OpenGLRendererAPI::SetClearColor(const glm::vec4& color) {
-		glClearColor(color.r, color.g, color.b, color.a);
+	void OpenGLRenderer::SetClearColor(float r, float g, float b, float a) {
+		glClearColor(r, g, b, a);
 	}
 
-	void OpenGLRendererAPI::Clear() {
+	void OpenGLRenderer::Clear() {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	}
 
-	void OpenGLRendererAPI::DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray, const uint32_t indexCount) {
+	void OpenGLRenderer::DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray, const uint32_t indexCount) {
 
 		vertexArray->Bind();
-		glDrawElements(GL_TRIANGLES, vertexArray->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr);
+		glDrawElements(GL_TRIANGLES, (indexCount) ? indexCount : vertexArray->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr);
 	}
 
-	void OpenGLRendererAPI::DrawArrays(const std::shared_ptr<VertexArray>& vertexArray) {
+	void OpenGLRenderer::DrawArrays(const std::shared_ptr<VertexArray>& vertexArray, uint32_t vertexCount) {
 		
-		//vertexArray->Bind();
-		//glDrawArrays(GL_TRIANGLES, 0, *need vertex count* );
+		vertexArray->Bind();
+		glDrawArrays(GL_LINES, 0, vertexCount);
+	}
+
+	void OpenGLRenderer::SetLineWidth(float width) {
+		glLineWidth(width);
 	}
 }

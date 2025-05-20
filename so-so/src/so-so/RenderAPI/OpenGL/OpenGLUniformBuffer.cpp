@@ -18,6 +18,11 @@ namespace soso {
 		glDeleteBuffers(1, &m_RendererID);
 	}
 
+	void OpenGLUniformBuffer::Bind() {
+
+		glBindBufferBase(GL_UNIFORM_BUFFER, m_BindingPoint, m_RendererID);
+	}
+
 	void OpenGLUniformBuffer::SetData(const void* data, uint32_t size, uint32_t offset) {
 
 		SS_CORE_ASSERT(offset + size <= m_Size, "overflow");
