@@ -1,5 +1,7 @@
 #pragma once
 
+#include "so-so/Core/Core.h"
+
 namespace soso {
 
 	enum class ShaderDataType {
@@ -64,15 +66,15 @@ namespace soso {
 
 	};
 
-	class BufferLayout {
+	class VertexBufferLayout {
 	public:
-		BufferLayout() = default;
-		virtual ~BufferLayout() {}
+		VertexBufferLayout() = default;
+		virtual ~VertexBufferLayout() {}
 
 		// Utilizing std::initializer_list in the constructor simplifies the process
-		// of instantiating BufferLayout instances by allowing initialization with a
+		// of instantiating VertexBufferLayout instances by allowing initialization with a
 		// list of BufferElement objects directly.
-		BufferLayout(const std::initializer_list<BufferElement>& elements)
+		VertexBufferLayout(const std::initializer_list<BufferElement>& elements)
 			: m_Elements(elements)
 		{
 			CalculateOffsetsAndStride();
@@ -112,23 +114,10 @@ namespace soso {
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;
 
-		virtual const BufferLayout& GetLayout() const = 0;
-		virtual void SetLayout(const BufferLayout& layout) = 0;
+		virtual const VertexBufferLayout& GetLayout() const = 0;
+		virtual void SetLayout(const VertexBufferLayout& layout) = 0;
 
 		static std::shared_ptr<VertexBuffer> Create(uint32_t size);
 		static std::shared_ptr<VertexBuffer> Create(void* verticies, uint32_t size);
-	};
-
-	class IndexBuffer {
-	public:
-		virtual ~IndexBuffer() = default;
-
-		virtual void Bind() const = 0;
-		virtual void Unbind() const = 0;
-
-		virtual uint32_t GetSize() const = 0;
-		virtual uint32_t GetCount() const = 0;
-
-		static std::shared_ptr<IndexBuffer> Create(void* indices, uint32_t size);
 	};
 }
