@@ -29,7 +29,7 @@ project "so-so"
 	location "so-so"
 	kind "StaticLib"
 	language "C++"
-	cppdialect "C++20"
+	cppdialect "C++23"
 	staticruntime "on"
 
 	targetdir ("bin/" .. Outputdir .. "/%{prj.name}")
@@ -42,12 +42,14 @@ project "so-so"
 	{
 		"%{prj.name}/src/**.h",
 		"%{prj.name}/src/**.cpp",
-		"%{prj.name}/vendor/glm/glm/**.hpp", -- make glm its own project to reduce compile times
+
+		"%{prj.name}/vendor/glm/glm/**.hpp", -- slow compile times
 		"%{prj.name}/vendor/glm/glm/**.inl",
+
 		"%{prj.name}/vendor/stb_image/stb_image.cpp",
 
-		"%{prj.name}/vendor/spirv-cross/**.hpp",
-		"%{prj.name}/vendor/spirv-cross/**.cpp",
+		"%{prj.name}/vendor/spirv-cross/**.hpp", 
+		"%{prj.name}/vendor/spirv-cross/**.cpp", -- slow compile times. TODO: Get binaries
 	}
 	
 	
@@ -55,6 +57,8 @@ project "so-so"
 	{
 		"%{prj.name}/src",
 		"%{prj.name}/src/so-so/",
+
+		"%{prj.name}/vendor/",
 		"%{prj.name}/vendor/spdlog/include",
 		"%{prj.name}/vendor/GLFW/include",
 		"%{prj.name}/vendor/Glad/include",
@@ -91,28 +95,12 @@ project "so-so"
 		
 		libdirs 
 		{
-			"%{prj.location}/vendor/assimp/bin/windows/%{cfg.buildcfg}",
 			"%{prj.location}/vendor/shaderc/bin/windows/%{cfg.buildcfg}",
 		}
 
 		links
 		{
-			"shaderc_combined.lib"
-		}
-
-	filter { "system:windows", "configurations:Debug" }
-
-		links 
-		{
-			"assimp-vc143-mtd.lib"
-
-		}
-
-	filter { "system:windows", "configurations:Release" }
-
-		links 
-		{
-			"assimp-vc143-mt.lib"
+			"shaderc_combined.lib" -- Shaderc is fucking huge. Figure out how to reduce it's size
 		}
 
 	filter "system:linux"
@@ -120,11 +108,6 @@ project "so-so"
 		defines
 		{
 			"SS_PLATFORM_LINUX"
-		}
-
-		libdirs 
-		{
-			"so-so/vendor/assimp/bin/linux/%{cfg.buildcfg}"
 		}
 
 	filter { "files:**/vendor/spirv-cross/**.cpp" }
@@ -151,7 +134,7 @@ project "Sandbox"
 	location "Sandbox"
 	kind "ConsoleApp"
 	language "C++"
-	cppdialect "C++20"
+	cppdialect "C++23"
 	staticruntime "on"
 
 	targetdir ("bin/" .. Outputdir .. "/%{prj.name}")
@@ -170,7 +153,6 @@ project "Sandbox"
 
     	"%{prj.name}/src",
     	
-
         "so-so/src",
         "so-so/vendor/spdlog/include",
         "so-so/vendor/GLFW/include",
@@ -196,7 +178,38 @@ project "Sandbox"
 		{
 			"SS_PLATFORM_WINDOWS"
 		}
-		
+
+		libdirs
+		{
+			"%{wks.location}/so-so/vendor/assimp/bin/windows/%{cfg.buildcfg}",
+		}
+
+
+	filter { "system:windows", "configurations:Debug" }
+
+
+		links 
+		{
+			"assimp-vc143-mtd.lib"
+
+		}
+
+		postbuildcommands {
+			'{COPY} "../so-so/vendor/assimp/bin/windows/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
+		}
+			
+
+	filter { "system:windows", "configurations:Release" }
+
+		links 
+		{
+			"assimp-vc143-mt.lib"
+		}
+
+		postbuildcommands {
+			'{COPY} "../so-so/vendor/assimp/bin/windows/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
+		}
+
 
 	filter "system:linux"
 
@@ -205,18 +218,11 @@ project "Sandbox"
 			"SS_PLATFORM_LINUX"
 		}
 
-
-	filter { "system:windows", "configurations:Debug" }
-
-		postbuildcommands {
-			'{COPY} "../so-so/vendor/assimp/bin/windows/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
+		libdirs 
+		{
+			"so-so/vendor/assimp/bin/linux/%{cfg.buildcfg}"
 		}
-			
-	filter { "system:windows", "configurations:Release" }
 
-		postbuildcommands {
-			'{COPY} "../so-so/vendor/assimp/bin/windows/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
-		}
 
 	filter "configurations:Debug"
 		defines "SS_DEBUG"
