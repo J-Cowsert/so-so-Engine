@@ -21,4 +21,19 @@ namespace soso {
 		SS_CORE_ASSERT(false, "RendererAPI is undefined");
 		return nullptr;
 	}
+
+	std::shared_ptr<Material> Material::Copy(const std::shared_ptr<Material>& other, const std::string& name) {
+
+		switch (Renderer::GetAPI()) {
+
+		case RendererAPI::API::None:
+			SS_CORE_ASSERT(false, "RendererAPI is set to None"); return nullptr;
+
+		case RendererAPI::API::OpenGL:
+			return std::make_shared<OpenGLMaterial>(other, name);
+		}
+
+		SS_CORE_ASSERT(false, "RendererAPI is undefined");
+		return nullptr;
+	}
 }
