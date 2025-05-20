@@ -1,19 +1,25 @@
 #pragma once
 #include <soso.h>
 #include <so-so/Renderer/Renderer.h>
-#include <so-so/Renderer/SceneCamera.h>
 
-#include <so-so/Renderer/Texture.h>
-#include <so-so/Asset/TextureImporter.h>
+
+
 
 
 #include "glm/ext.hpp"
 
-class Skybox {
-public:
+struct Skybox {
+
+	std::shared_ptr<soso::VertexArray> m_VA;
+	std::shared_ptr<soso::VertexBuffer> m_VB;
+	std::shared_ptr<soso::IndexBuffer> m_IB;
+
+	std::shared_ptr<soso::TextureCube> m_TexCube;
+	std::shared_ptr<soso::Shader> m_Shader;
+
 	Skybox() = default;
 
-	Skybox(std::shared_ptr<soso::TextureCube> cubeTexture)
+	explicit Skybox(std::shared_ptr<soso::TextureCube> cubeTexture)
 		: m_TexCube(cubeTexture) 
 	{
 		float vertices[] = {
@@ -27,6 +33,7 @@ public:
 			 1.0f, -1.0f,  1.0f,  // 6
 			 1.0f,  1.0f,  1.0f   // 7
 		};
+
 		uint32_t indices[] = {
 			// Back face
 			0, 1, 2,
@@ -55,7 +62,7 @@ public:
 		m_VA->Bind();
 
 		m_VB = soso::VertexBuffer::Create(vertices, sizeof(vertices));
-		m_VB->SetLayout(soso::BufferLayout({
+		m_VB->SetLayout(soso::VertexBufferLayout({
 			{ soso::ShaderDataType::Float3, "a_Position" }
 			}));
 		
@@ -70,7 +77,7 @@ public:
 
 	void Draw() {
 		
-		soso::RenderCommand::SetDepthFunction(soso::RenderCommand::DepthFunction::LEQUAL);
+		
 		m_VA->Bind();
 		m_Shader->Bind();
 		m_TexCube->Bind(0);
@@ -78,15 +85,7 @@ public:
 
 		soso::Renderer::SubmitSkybox(m_Shader, m_VA);
 		m_VA->Unbind();
-		soso::RenderCommand::SetDepthFunction(soso::RenderCommand::DepthFunction::LESS);
+		
 	}
 
-private:
-
-	std::shared_ptr<soso::VertexArray> m_VA;
-	std::shared_ptr<soso::VertexBuffer> m_VB;
-	std::shared_ptr<soso::IndexBuffer> m_IB;
-
-	std::shared_ptr<soso::TextureCube> m_TexCube;
-	std::shared_ptr<soso::Shader> m_Shader;
 };

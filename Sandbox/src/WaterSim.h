@@ -3,14 +3,41 @@
 #pragma once
 #include <soso.h>
 
-#include <so-so/Asset/TextureImporter.h>
-#include "so-so/Renderer/MeshGenerator.h"
 #include "Misc/Skybox.h"
 
 #include "glm/ext.hpp"
 #include "imgui.h"
 
+class AxisGizmo {
+public:
 
+	struct CononicalBasis {
+
+		glm::mat3 b = { 1.0 };
+
+		glm::vec3 X = { 1,0,0 };
+		glm::vec3 Y = { 0,1,0 };
+		glm::vec3 Z = { 0,0,-1 }; // Forward is -Z
+	};
+
+	struct DefaultColors {
+
+		glm::vec3 X{ 1.0f, 0.0f, 0.0f };
+		glm::vec3 Y{ 0.0f, 1.0f, 0.0f };
+		glm::vec3 Z{ 0.0f, 0.0f, 1.0f };
+	};
+
+	inline void CalculateAndSubmit(const glm::mat4& ViewMatrix) {
+
+		auto v = glm::mat3(ViewMatrix); // strip translation
+
+		float width = (float)soso::Application::Get().GetWindow().GetWidth(),
+			  height = (float)soso::Application::Get().GetWindow().GetHeight();
+
+
+
+	}
+};
 
 class WaterSim : public soso::Layer {
 public:
@@ -29,7 +56,6 @@ public:
 
 		m_Mesh = soso::Mesh::Create("assets/backpack/backpack.obj");
 
-		m_Mesh->DumpBufferInfo();
 
 		//m_TexCube = soso::TextureImporter::LoadTextureCube({
 		//	"assets/textures/Skybox/skybox/right.jpg",

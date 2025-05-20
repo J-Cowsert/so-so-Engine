@@ -1,31 +1,23 @@
 #pragma once
 
-
-#pragma once
+#include "Misc/ShaderEditor.h"
 
 #include <soso.h>
-#include "so-so/Core/Utils.h"
-#include "so-so/Renderer/FrameBuffer.h"
-#include "so-so/Renderer/Renderer.h"
-
-#include "glm/ext.hpp"
-#include "imgui.h"
 
 // Temporary Editor
 
 class EditorLayer : public soso::Layer {
 public:
 
-	EditorLayer()
-		:Layer("Editor") {
-
-		
+	EditorLayer() = default;
+	EditorLayer(std::unique_ptr<soso::Layer> runtime)
+		:Layer("Editor"), m_RuntimeLayer(std::move(runtime))
+	{
 	}
 
 	void OnAttach() override {
 		
 		m_FrameBuffer = soso::Renderer::GetCompositeFrameBuffer();
-
 
 		m_RuntimeLayer->OnAttach();
 	}
@@ -39,8 +31,7 @@ public:
 		}
 
 		m_FrameBuffer->Bind();
-		soso::RenderCommand::SetClearColor({ 0.3f, 0.3f, 0.3f, 1 });
-		soso::RenderCommand::Clear();
+		soso::Renderer::Clear(1, 0, 1, 1);
 
 	
 		{
@@ -93,11 +84,38 @@ public:
 			ImGui::DockSpace(dockspace_id, ImVec2(0.0f, 0.0f), dockspace_flags);
 		}
 
-
-		if (ImGui::BeginMenuBar()) {
-			if (ImGui::BeginMenu("File"))
+		if (ImGui::BeginMenuBar()) 
+		{
+			if (ImGui::BeginMenu("Window"))
 			{
+
+				if (ImGui::MenuItem("Fullscreen")) 
+				{
+					soso::Window& window = soso::Application::Get().GetWindow();
+					window.SetFullscreen(window.IsFullscreen() ? false : true);
+				}
+
 				if (ImGui::MenuItem("Exit")) soso::Application::Get().Close();
+
+				ImGui::EndMenu();
+			}
+
+			if (ImGui::BeginMenu("Tools")) {
+
+				if (ImGui::MenuItem("Metrics Tool")) {
+
+					m_ShowMetricsTool = !m_ShowMetricsTool;
+				}
+
+				if (ImGui::MenuItem("Stack Tool")) {
+
+					m_ShowStackTool = !m_ShowStackTool;
+				}
+
+				if (ImGui::MenuItem("ShaderEditor")) {
+
+					m_ShowShaderEditorTool = !m_ShowShaderEditorTool;
+				}
 
 				ImGui::EndMenu();
 			}
@@ -105,16 +123,16 @@ public:
 			ImGui::EndMenuBar();
 		}
 
-		ImGui::Begin("Stats");
-		{
-			
-			ImGui::Text("FPS: %.2f", soso::Application::Get().GetFPS());
-
-			ImGui::End();
-		}
-
 		ImGui::PushStyleVar(ImGuiStyleVar_WindowPadding, ImVec2{ 0, 0 });
 
+		if (m_ShowMetricsTool)
+			ImGui::ShowMetricsWindow(&m_ShowMetricsTool);
+		
+		if (m_ShowStackTool)
+			ImGui::ShowStackToolWindow(&m_ShowStackTool);
+
+		if (m_ShowShaderEditorTool)
+			m_ShaderEditor.Draw();
 
 		ImGui::Begin("Viewport");
 		{
@@ -123,21 +141,14 @@ public:
 			{
 				m_FrameBuffer->Resize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
 				m_ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
-
-
-
-				//m_RuntimeLayer->SetResolution(m_ViewportSize);
-
-
-
 			}
-			uint32_t textureID = m_FrameBuffer->GetColorAttachmentRendererID();
-			ImGui::Image((void*)textureID, ImVec2{ m_ViewportSize.x, m_ViewportSize.y }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
+
+			uint32_t textureID = m_FrameBuffer->GetColorAttachmentRendererID(0);
+			ImGui::Image((ImTextureID)(intptr_t)textureID, ImVec2{ m_ViewportSize.x, m_ViewportSize.y }, ImVec2{ 0, 1 }, ImVec2{ 1, 0 });
 		}
 
 
 		{
-
 			m_RuntimeLayer->OnImGuiRender();
 		}
 
@@ -145,10 +156,6 @@ public:
 		ImGui::End();
 		ImGui::PopStyleVar();
 		ImGui::End();
-	}
-
-	void SetRuntimeLayer(std::unique_ptr<soso::Layer> layer) {
-		m_RuntimeLayer = std::move(layer);
 	}
 
 private:
@@ -159,4 +166,11 @@ private:
 
 private:
 	std::unique_ptr<soso::Layer> m_RuntimeLayer;
+
+	ShaderEditor m_ShaderEditor;
+
+private:
+	bool m_ShowMetricsTool = false;
+	bool m_ShowStackTool = false;
+	bool m_ShowShaderEditorTool = true;
 };

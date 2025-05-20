@@ -52,7 +52,7 @@ layout(binding = 0) uniform sampler2D u_Texture;
 
 void main()
 {
-    vec3 worldNorm = normalize(v_Position * v_Normal);
-    Output = vec4(v_Normal * 0.5 + 0.5, 1.0);
+    //vec3 worldNorm = normalize(v_Position * v_Normal);
+    Output = vec4(v_Normal, 1.0);
 }
     
