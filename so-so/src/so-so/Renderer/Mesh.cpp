@@ -1,16 +1,15 @@
 #include "sspch.h"
 #include "Mesh.h"
 #include "so-so/Renderer/Renderer.h"
+#include "so-so/Resource/TextureImporter.h"
 
-#include "so-so/Asset/TextureImporter.h"
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
-
 #include <assimp/Importer.hpp>
 #include <assimp/DefaultLogger.hpp>
 #include <assimp/LogStream.hpp>
 
-#define MESH_DEBUG_LOG false // Toggle for debug logging
+#define MESH_DEBUG_LOG true // Toggle for debug logging
 
 #if MESH_DEBUG_LOG
 	#define MESH_DEBUG(...) SS_CORE_TRACE(__VA_ARGS__)
@@ -35,7 +34,7 @@ namespace soso {
 		}
 	};
 
-	glm::mat4 Mat4FromAssimpMat4(const aiMatrix4x4& matrix) {
+	static glm::mat4 Mat4FromAssimpMat4(const aiMatrix4x4& matrix) {
 		glm::mat4 result;
 		//the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
 		result[0][0] = matrix.a1; result[1][0] = matrix.a2; result[2][0] = matrix.a3; result[3][0] = matrix.a4;
@@ -64,15 +63,13 @@ namespace soso {
 
 		m_Shader = Renderer::GetShaderLibrary()->Get("BlinnPhong");
 
-		m_Importer = std::make_unique<Assimp::Importer>();
-		const aiScene* scene = m_Importer->ReadFile(filepath.generic_string(), s_MeshImportFlags);
+		Assimp::Importer importer;
+		const aiScene* scene = importer.ReadFile(filepath.generic_string(), s_MeshImportFlags);
 
 		if (!scene || !scene->HasMeshes()) {
 			MESH_DEBUG("Filed to load mesh file: {0}", filepath);
 			return;
 		}
-
-		m_aiScene = scene; // TODO: Remove
 
 		uint32_t vertexCount = 0;
 		uint32_t indexCount = 0;
@@ -128,6 +125,7 @@ namespace soso {
 
 		TraverseNodes(scene->mRootNode);
 
+
 		// Materials
 		if (scene->HasMaterials()) {
 
@@ -180,16 +178,17 @@ namespace soso {
 
 				// Diffuse Map
 				aiString aiTexPath;
-				bool hasDiffuseMap = aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == aiReturn_SUCCESS;
+				bool hasDiffuseMap = aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == AI_SUCCESS;
 
 				if (hasDiffuseMap) {
+
 					MESH_DEBUG("tex name: {0}", std::string(aiTexPath.data));
 					std::filesystem::path path = filepath;
 					auto parentPath = path.parent_path();
 					MESH_DEBUG("Parent path: {0}", parentPath);
 					parentPath /= std::string(aiTexPath.data);
 					std::string texturePath = parentPath.string();
-					MESH_DEBUG("diffuse map path: {0}", texturePath);
+					MESH_DEBUG("Diffuse map path: {0}", texturePath);
 
 					auto texture = TextureImporter::LoadTexture2D(texturePath);
 
@@ -199,7 +198,7 @@ namespace soso {
 				}
 
 				// Specular Map
-				bool hasSpecularMap = aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &aiTexPath) == aiReturn_SUCCESS;
+				bool hasSpecularMap = aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &aiTexPath) == AI_SUCCESS;
 
 				if (hasSpecularMap) {
 
@@ -208,7 +207,7 @@ namespace soso {
 					MESH_DEBUG("Parent path: {0}", parentPath);
 					parentPath /= std::string(aiTexPath.data);
 					std::string texturePath = parentPath.string();
-					MESH_DEBUG("specular map path: {0}", texturePath);
+					MESH_DEBUG("Specular map path: {0}", texturePath);
 
 					auto texture = TextureImporter::LoadTexture2D(texturePath);
 					
@@ -216,6 +215,28 @@ namespace soso {
 						mat->Set("u_Specular", texture);
 					}
 				}
+
+				// Normal Map
+				// Some assets use aiTextureType_NORMALS and others aiTextureType_HEIGHT for normals
+				bool hasNormalMap = aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &aiTexPath) == AI_SUCCESS;
+
+				if (hasNormalMap) {
+					
+					std::filesystem::path path = filepath;
+					auto parentPath = path.parent_path();
+					MESH_DEBUG("Parent path: {0}", parentPath);
+					parentPath /= std::string(aiTexPath.data);
+					std::string texturePath = parentPath.string();
+					MESH_DEBUG("Normal Map path: {0}", texturePath);
+
+					auto texture = TextureImporter::LoadTexture2D(texturePath);
+
+					if (texture->IsLoaded()) {
+						mat->Set("u_Normal", texture);
+						mat->Set("u_Material.HasNormalMap", true);
+					}
+				}
+
 			}
 			// TODO: Set missing textures to defualt white textures
 		}
@@ -223,7 +244,7 @@ namespace soso {
 		m_VertexArray = VertexArray::Create();
 		m_VertexArray->Bind();
 
-		BufferLayout vertexLayout = {
+		VertexBufferLayout vertexLayout = {
 				{ ShaderDataType::Float3, "a_Position" },
 				{ ShaderDataType::Float3, "a_Normal" },
 				{ ShaderDataType::Float3, "a_Tangent" },
@@ -231,10 +252,10 @@ namespace soso {
 				{ ShaderDataType::Float2, "a_TexCoord" },
 		};
 
-		m_VertexBuffer = VertexBuffer::Create(m_Vertices.data(), m_Vertices.size() * sizeof(Vertex));
+		m_VertexBuffer = VertexBuffer::Create(m_Vertices.data(), static_cast<uint32_t>(m_Vertices.size() * sizeof(Vertex)));
 		m_VertexBuffer->SetLayout(vertexLayout);
 
-		m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), m_Indices.size() * sizeof(Index));
+		m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), static_cast<uint32_t>(m_Indices.size() * sizeof(Index)));
 
 		m_VertexArray->AddVertexBuffer(m_VertexBuffer);
 		m_VertexArray->SetIndexBuffer(m_IndexBuffer);
@@ -246,13 +267,13 @@ namespace soso {
 		Submesh& submesh = m_Submeshes.emplace_back();
 		submesh.BaseVertex = 0;
 		submesh.BaseIndex = 0;
-		submesh.IndexCount = indices.size() * 3;
+		submesh.IndexCount = static_cast<uint32_t>(indices.size()) * 3;
 		submesh.Transform = transform;
 
 		m_VertexArray = VertexArray::Create();
 		m_VertexArray->Bind();
 
-		BufferLayout vertexLayout = {
+		VertexBufferLayout vertexLayout = {
 				{ ShaderDataType::Float3, "a_Position" },
 				{ ShaderDataType::Float3, "a_Normal" },
 				{ ShaderDataType::Float3, "a_Tangent" },
@@ -260,9 +281,9 @@ namespace soso {
 				{ ShaderDataType::Float2, "a_TexCoord" },
 		};
 
-		m_VertexBuffer = VertexBuffer::Create(m_Vertices.data(), m_Vertices.size() * sizeof(Vertex));
+		m_VertexBuffer = VertexBuffer::Create(m_Vertices.data(), static_cast<uint32_t>(m_Vertices.size() * sizeof(Vertex)));
 		m_VertexBuffer->SetLayout(vertexLayout);
-		m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), m_Indices.size() * sizeof(Index));
+		m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), static_cast<uint32_t>(m_Indices.size() * sizeof(Index)));
 		m_VertexArray->AddVertexBuffer(m_VertexBuffer);
 		m_VertexArray->SetIndexBuffer(m_IndexBuffer);
 
@@ -271,7 +292,9 @@ namespace soso {
 
 	Mesh::~Mesh() {}
 
-	void Mesh::TraverseNodes(aiNode* node, const glm::mat4& parentTransform, uint32_t level) {
+	void Mesh::TraverseNodes(void* assimpNode, const glm::mat4& parentTransform, uint32_t level) {
+
+		aiNode* node = (aiNode*)assimpNode;
 
 		glm::mat4 localTransform = Mat4FromAssimpMat4(node->mTransformation);
 		glm::mat4 transform = parentTransform * localTransform; // Position relative to the parant node's transform
