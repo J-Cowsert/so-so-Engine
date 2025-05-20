@@ -1,8 +1,21 @@
 #pragma once
 
+#include "so-so/Renderer/UniformBuffer.h"
+
 #include <string>
+#include <unordered_map>
+
+#include "glm/glm.hpp"
 
 namespace soso {
+
+	enum class ShaderStage {
+		None = 0,
+		Vertex,
+		Geometry, // TODO
+		Fragment,
+		Compute // TODO: compute shaders do not link with vertex/fragment shaders — they are a standalone pipeline
+	};
 
 	enum class ShaderUniformType {
 		None = 0, 
@@ -29,14 +42,14 @@ namespace soso {
 		uint32_t m_Offset = 0;
 	};
 
-	// TODO: Move some of this to RenderAPI backend as it is api specific. Vulkan for example needs more data stored
+	// TODO: Move some of this to RenderAPI backend as it is api specific. Vulkan for example needs more data stored like set
 
-	// Uniform Buffer
-	struct ShaderBuffer { 
+	struct ShaderUniformBufferInfo { 
 
 		std::string Name;
 		uint32_t Size;
 		uint32_t BindingPoint;
+		uint32_t RendererID;
 		std::unordered_map<std::string, ShaderUniform> Uniforms;
 	};
 
@@ -64,13 +77,16 @@ namespace soso {
 		virtual ~Shader() = default;
 
 		virtual void Bind() const = 0;
-		virtual void Unbind() const = 0;
 
-		virtual void Reload() const = 0;
+		virtual void Reload() = 0;
 
 		virtual const std::string& GetName() const = 0;
-		virtual const std::unordered_map<std::string, ShaderBuffer>& GetShaderBuffers() const = 0;
+		virtual const std::unordered_map<std::string, ShaderUniformBufferInfo>& GetShaderBuffers() const = 0;
 		virtual const std::unordered_map<std::string, ShaderResourceInfo>& GetResources() const = 0;
+		virtual std::unordered_map<ShaderStage, std::string> GetSources() const = 0;
+		virtual const std::string& GetFilepath() const = 0;
+
+		virtual std::shared_ptr<UniformBuffer> GetUniformBuffer(uint32_t bindingPoint) const = 0;
 
 		virtual void SetUniform(const std::string& name, float value) = 0;
 		virtual void SetUniform(const std::string& name, int value) = 0;
