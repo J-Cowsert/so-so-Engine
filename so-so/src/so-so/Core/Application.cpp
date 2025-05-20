@@ -21,6 +21,7 @@ namespace soso {
 
 		WindowConfig config;
 		config.Fullscreen = false;
+		config.VSync = true;
 
 		m_Window = std::unique_ptr<Window>(Window::Create(config));
 		m_Window->SetEventCallback(BIND_EVENT_FN(Application::OnEvent));
@@ -43,10 +44,6 @@ namespace soso {
 		overlay->OnAttach();
 	}
 
-	const float Application::GetFPS() const {
-		return m_FPS;
-	}
-
 	void Application::OnEvent(Event& e) {
 
 		EventDispatcher dispatcher(e);
@@ -67,7 +64,6 @@ namespace soso {
 			float time = Time::GetTime();
 			Timestep timestep = time - m_LastFrameTime;
 			m_LastFrameTime = time;
-			m_FPS = 1 / timestep;
 
 			ExecuteMainThreadQueue();
 

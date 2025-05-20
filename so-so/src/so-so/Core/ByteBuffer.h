@@ -55,7 +55,7 @@ namespace soso {
 		}
 
 		template<typename T>
-		T* As() {
+		T* As() const {
 			return (T*)Data;
 		}
 

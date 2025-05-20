@@ -16,12 +16,12 @@
 	#define SS_COMPILER_MSVC
 #endif
 
-#if defined(SS_COMPILER_CLANG)
-	#define SS_FORCE_INLINE __attribute__((always_inline))
-#elif defined(SS_COMPILER_GCC)
+#if defined(__GNUC__)
 	#define SS_FORCE_INLINE __attribute__((always_inline)) inline
-#elif defined(SS_COMPILER_MSVC)
+#elif defined(_MSC_VER)
 	#define SS_FORCE_INLINE __forceinline
+#else
+	#define SS_FORCE_INLINE inline
 #endif
 
 #if defined(SS_PLATFORM_WINDOWS)
