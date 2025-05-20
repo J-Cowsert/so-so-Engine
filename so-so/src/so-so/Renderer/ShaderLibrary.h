@@ -16,6 +16,7 @@ namespace soso {
 		std::shared_ptr<Shader> Load(const std::string& name, const std::string& filepath);
 
 		std::shared_ptr<Shader> Get(const std::string& name);
+		std::vector<std::shared_ptr<Shader>> GetAll();
 
 		bool Exists(const std::string& name) const;
 
