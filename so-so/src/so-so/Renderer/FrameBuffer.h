@@ -8,6 +8,7 @@ namespace soso {
 		None = 0,
 		RGBA8,
 		DEPTH24STENCIL8,
+		DEPTH32F,
 		RED_INTEGER
 	};
 
@@ -39,21 +40,22 @@ namespace soso {
 	};
 
 	struct FrameBufferAttachmentConfig {
+
 		FrameBufferAttachmentConfig() = default;
+
 		FrameBufferAttachmentConfig(std::initializer_list<FrameBufferTextureConfig> attachments)
-			: Attachments(attachments) {
+			: Attachments(attachments) 
+		{
 		}
 
 		std::vector<FrameBufferTextureConfig> Attachments;
 	};
 
-
 	struct FrameBufferConfig {
+
 		uint32_t Width = 0, Height = 0;
 		FrameBufferAttachmentConfig Attachments;
 		uint32_t Samples = 1;
-
-		bool SwapChainTarget = false;
 	};
 
 	class FrameBuffer {
@@ -69,6 +71,7 @@ namespace soso {
 		virtual void ClearAttachment(uint32_t attachmentIndex, int value) = 0;
 
 		virtual uint32_t GetColorAttachmentRendererID(uint32_t index = 0) const = 0;
+		virtual uint32_t GetDepthAttachmentRendererID() const = 0;
 
 		virtual const FrameBufferConfig& GetConfig() const = 0;
 

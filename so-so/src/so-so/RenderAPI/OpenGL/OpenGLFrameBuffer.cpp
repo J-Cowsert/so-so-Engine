@@ -25,7 +25,8 @@ namespace soso {
 			
 			switch (format) {
 
-				case FrameBufferTextureFormat::DEPTH24STENCIL8: return true;
+			case FrameBufferTextureFormat::DEPTH24STENCIL8:
+			case FrameBufferTextureFormat::DEPTH32F: return true;
 			}
 
 			return false;
@@ -47,6 +48,7 @@ namespace soso {
 
 			bool multisampled = samples > 1;
 			if (multisampled) {
+
 				glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, internalFormat, width, height, GL_FALSE);
 			}
 			else {
@@ -66,7 +68,9 @@ namespace soso {
 		static void AttachDepthTexture(uint32_t id, int samples, GLenum format, GLenum attachmentType, uint32_t width, uint32_t height) {
 
 			bool multisampled = samples > 1;
+
 			if (multisampled) {
+
 				glTexImage2DMultisample(GL_TEXTURE_2D_MULTISAMPLE, samples, format, width, height, GL_FALSE);
 			}
 			else {
@@ -87,7 +91,7 @@ namespace soso {
 	OpenGLFrameBuffer::OpenGLFrameBuffer(const FrameBufferConfig& config) 
 		: m_Config(config)
 	{
-		for (auto textureConfig : m_Config.Attachments.Attachments) {
+		for (auto& textureConfig : m_Config.Attachments.Attachments) {
 
 			if (!Utils::IsDepthFormat(textureConfig.TextureFormat))
 				m_ColorAttachmentConfigs.emplace_back(textureConfig);
@@ -99,6 +103,7 @@ namespace soso {
 	}
 
 	OpenGLFrameBuffer::~OpenGLFrameBuffer() {
+
 		glDeleteFramebuffers(1, &m_RendererID);
 		glDeleteTextures(m_ColorAttachments.size(), m_ColorAttachments.data());
 		glDeleteTextures(1, &m_DepthAttachment);
@@ -134,6 +139,7 @@ namespace soso {
 					case FrameBufferTextureFormat::RGBA8:
 						Utils::AttachColorTexture(m_ColorAttachments[i], m_Config.Samples, GL_RGBA8, GL_RGBA, m_Config.Width, m_Config.Height, i);
 						break;
+
 					case FrameBufferTextureFormat::RED_INTEGER:
 						Utils::AttachColorTexture(m_ColorAttachments[i], m_Config.Samples, GL_R32I, GL_RED_INTEGER, m_Config.Width, m_Config.Height, i);
 						break;
@@ -147,18 +153,25 @@ namespace soso {
 			Utils::BindTexture(multisample, m_DepthAttachment);
 
 			switch (m_DepthAttachmentConfig.TextureFormat) {
+
 				case FrameBufferTextureFormat::DEPTH24STENCIL8:
 					Utils::AttachDepthTexture(m_DepthAttachment, m_Config.Samples, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL_ATTACHMENT, m_Config.Width, m_Config.Height);
+					break;
+
+				case FrameBufferTextureFormat::DEPTH32F:
+					Utils::AttachDepthTexture(m_DepthAttachment, m_Config.Samples, GL_DEPTH_COMPONENT32F, GL_DEPTH_ATTACHMENT, m_Config.Width, m_Config.Height);
 					break;
 			}
 		}
 
 		if (m_ColorAttachments.size() > 1) {
+
 			SS_CORE_ASSERT(m_ColorAttachments.size() <= 4, "Too Many Attachments");
 			GLenum buffers[4] = { GL_COLOR_ATTACHMENT0, GL_COLOR_ATTACHMENT1, GL_COLOR_ATTACHMENT2, GL_COLOR_ATTACHMENT3 };
 			glDrawBuffers(m_ColorAttachments.size(), buffers);
 		}
 		else if (m_ColorAttachments.empty()) {
+
 			// Only depth-pass
 			glDrawBuffer(GL_NONE);
 		}
@@ -169,6 +182,7 @@ namespace soso {
 	}
 
 	void OpenGLFrameBuffer::Bind() {
+
 		glBindFramebuffer(GL_FRAMEBUFFER, m_RendererID);
 		glViewport(0, 0, m_Config.Width, m_Config.Height);
 	}
@@ -201,6 +215,7 @@ namespace soso {
 	}
 
 	void OpenGLFrameBuffer::ClearAttachment(uint32_t attachmentIndex, int value) {
+
 		SS_CORE_ASSERT(attachmentIndex < m_ColorAttachments.size(), "");
 
 		auto& config = m_ColorAttachmentConfigs[attachmentIndex];
