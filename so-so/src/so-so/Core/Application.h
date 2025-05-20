@@ -39,7 +39,6 @@ namespace soso {
 		void PushOverlay(Layer* overlay);
 
 		Window& GetWindow() { return *m_Window; }
-		const float GetFPS() const;
 
 		static Application& Get() { return *s_Instance; }
 
@@ -57,7 +56,6 @@ namespace soso {
 		bool m_Running = true;
 		bool m_Minimized = false;
 		float m_LastFrameTime = 0.0f;
-		float m_FPS = 0.0f;
 
 		std::mutex m_MainThreadQueueMutex;
 		std::vector<std::function<void()>> m_MainThreadQueue;
