@@ -12,8 +12,8 @@ namespace soso {
 	};
 
 	// TODO: Implement
-	enum class CameraProjectionType {
-		NONE, ORTHOGRAPHIC, PERSPECTIVE
+	enum class CameraProjectionMode {
+		ORTHOGRAPHIC, PERSPECTIVE
 	};
 
 	class SceneCamera : public Camera {
@@ -29,7 +29,10 @@ namespace soso {
 		bool IsActive() const { return m_IsActive; }
 		void SetActive(bool active) { m_IsActive = active; }
 
-		CameraControlMode GetCurrentMode() const { return m_CameraControlMode; }
+		void SetCameraProjectionMode(CameraProjectionMode mode );
+		
+		inline CameraControlMode GetCameraControlMode() const { return m_ControlMode; }
+		inline CameraProjectionMode GetCameraProjectionMode() const { return m_ProjectionMode; }
 
 		inline float GetDistance() const { return m_Distance; }
 		inline void SetDistance(float distance) { m_Distance = distance; }
@@ -41,7 +44,6 @@ namespace soso {
 		const glm::mat4& GetViewMatrix() const { return m_ViewMatrix; }
 		glm::mat4 GetViewProjection() const { return GetProjection() * m_ViewMatrix; }
 		
-
 		glm::vec3 GetUpDirection() const;
 		glm::vec3 GetRightDirection() const;
 		glm::vec3 GetForwardDirection() const;
@@ -73,8 +75,8 @@ namespace soso {
 		float ZoomSpeed() const;
 
 	private:
-		CameraProjectionType m_ProjectionType{ CameraProjectionType::PERSPECTIVE };
-		CameraControlMode m_CameraControlMode{ CameraControlMode::ARCBALL };
+		CameraProjectionMode m_ProjectionMode = CameraProjectionMode::PERSPECTIVE;
+		CameraControlMode m_ControlMode = CameraControlMode::ARCBALL;
 
 	private:
 		glm::mat4 m_ViewMatrix;
@@ -85,6 +87,7 @@ namespace soso {
 
 		bool m_IsActive = false;
 		bool m_Panning, m_Rotating;
+
 		glm::vec2 m_InitialMousePosition{};
 		glm::vec3 m_InitialFocalPoint, m_InitialRotation;
 
