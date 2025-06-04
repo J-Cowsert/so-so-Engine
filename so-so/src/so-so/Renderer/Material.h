@@ -24,8 +24,11 @@ namespace soso {
 		virtual void Bind() = 0;
 	
 		virtual std::shared_ptr<Shader> GetShader() const = 0;
+		
 		virtual uint32_t GetFlags() const = 0;
-		// TODO: Add flag setter
+		virtual bool IsFlagSet(MaterialFlag flag) const = 0;
+		virtual void EnableFlag(MaterialFlag flag) = 0;
+		virtual void DisableFlag(MaterialFlag flag) = 0;
 	
 		virtual void Set(const std::string& name, const float value) = 0;
 		virtual void Set(const std::string& name, const int value) = 0;
@@ -35,8 +38,10 @@ namespace soso {
 		virtual void Set(const std::string& name, const glm::mat2 value) = 0;
 		virtual void Set(const std::string& name, const glm::mat3 value) = 0;
 		virtual void Set(const std::string& name, const glm::mat4 value) = 0;
-	 
-		virtual void Set(const std::string& name, const std::shared_ptr<Texture2D>& texture) = 0;
+		virtual void Set(const std::string& name, const std::shared_ptr<Texture2D>& value) = 0;
+		virtual void Set(const std::string& name, const std::shared_ptr<TextureCube>& value) = 0;
+
+		virtual std::shared_ptr<TextureCube> GetTextureCube(const std::string& name) = 0;
 
 		// TODO: Add getters
 	};
