@@ -8,11 +8,16 @@
 namespace soso {
 
 	enum class ImageFormat {
+
 		None = 0,
 		R8,
 		RGB8,
-		RGBA8,
-		RGBA16F
+		RGBA8, 
+		RGBA16F,
+		RGBA32F,
+
+		SRGB,
+		SRGBA,
 	};
 
 	struct TextureConfig {
@@ -44,6 +49,7 @@ namespace soso {
 	class Texture2D : public Texture {
 	public:
 		static std::shared_ptr<Texture2D> Create(const TextureConfig& config, ByteBuffer data = ByteBuffer());
+		static std::shared_ptr<Texture2D> Create(const TextureConfig& config, const std::filesystem::path& filepath);
 	};
 
 	class TextureCube : public Texture {
