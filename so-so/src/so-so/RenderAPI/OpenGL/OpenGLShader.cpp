@@ -11,7 +11,7 @@
 #include <format>
 
 #include <shaderc/shaderc.hpp>
-#include <file_finder.h> // TODO: look into usage
+
 #include <spirv_cross.hpp>
 #include <spirv_glsl.hpp>
 
@@ -333,21 +333,23 @@ namespace soso {
 
 		std::unordered_map<ShaderStage, std::string> shaderSources;
 
-		const char* typeToken = "#type";
-		size_t typeTokenLength = strlen(typeToken);
-		size_t pos = source.find(typeToken, 0); //Start of shader type declaration line
+		const char* stageToken = "#stage";
+		size_t stageTokenLength = strlen(stageToken);
+		size_t pos = source.find(stageToken, 0); // Start of shader type declaration line
 
 		while (pos != std::string::npos) {
 
-			size_t eol = source.find_first_of("\r\n", pos); //End of shader type declaration line
+			size_t eol = source.find_first_of("\r\n", pos); // End of shader stage declaration line
 			SS_CORE_ASSERT(eol != std::string::npos, "Syntax error");
-			size_t begin = pos + typeTokenLength + 1; //Start of shader type name (after "#type " keyword)
+
+			size_t begin = pos + stageTokenLength + 1; // Start of shader stage name
 			std::string type = source.substr(begin, eol - begin);
 			SS_CORE_ASSERT(Utils::StringToGLShaderStage(type), "Invalid shader type specified");
 
-			size_t nextLinePos = source.find_first_not_of("\r\n", eol); //Start of shader code after shader type declaration line
+			size_t nextLinePos = source.find_first_not_of("\r\n", eol); // Start of shader code after shader type declaration line
 			SS_CORE_ASSERT(nextLinePos != std::string::npos, "Syntax error");
-			pos = source.find(typeToken, nextLinePos); //Start of next shader type declaration line
+
+			pos = source.find(stageToken, nextLinePos); // Start of next shader type declaration line
 
 			shaderSources[Utils::StringToSosoShaderStage(type)] = (pos == std::string::npos) ? source.substr(nextLinePos) : source.substr(nextLinePos, pos - nextLinePos);
 		}
@@ -366,8 +368,10 @@ namespace soso {
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
 		options.SetTargetEnvironment(shaderc_target_env_opengl, shaderc_env_version_opengl_4_5);
-		options.SetOptimizationLevel(shaderc_optimization_level_performance);
+		options.SetOptimizationLevel(shaderc_optimization_level_zero);
 		options.SetGenerateDebugInfo();
+
+		//options.AddMacroDefinition
 
 		std::filesystem::path cacheDirectory = Utils::GetCacheDirectory();
 
