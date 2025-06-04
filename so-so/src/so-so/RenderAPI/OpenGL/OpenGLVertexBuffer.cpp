@@ -9,16 +9,14 @@ namespace soso {
 		: m_Size(size)
 	{
 		glCreateBuffers(1, &m_RendererID);
-		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
-		glBufferData(GL_ARRAY_BUFFER, size, nullptr, GL_DYNAMIC_DRAW);
+		glNamedBufferData(m_RendererID, size, nullptr, GL_DYNAMIC_DRAW);
 	}
 
 	OpenGLVertexBuffer::OpenGLVertexBuffer(void* indicies, uint32_t size) 
 		: m_Size(size)
 	{
 		glCreateBuffers(1, &m_RendererID);
-		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
-		glBufferData(GL_ARRAY_BUFFER, size, indicies, GL_STATIC_DRAW);
+		glNamedBufferData(m_RendererID, size, indicies, GL_STATIC_DRAW);
 	}
 
 	OpenGLVertexBuffer::~OpenGLVertexBuffer() {
@@ -35,10 +33,8 @@ namespace soso {
 
 	void OpenGLVertexBuffer::SetData(const void* data, uint32_t size) {
 
+		SS_CORE_ASSERT(size <= m_Size, "Overflow");
 		SS_CORE_ASSERT(data, "Data is null");
-
-		glBindBuffer(GL_ARRAY_BUFFER, m_RendererID);
-		glBufferSubData(GL_ARRAY_BUFFER, 0, size, data);
+		glNamedBufferSubData(m_RendererID, 0, size, data);
 	}
-
 }
