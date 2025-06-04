@@ -3,8 +3,8 @@
 
 #include "so-so/Core/Timer.h"
 #include "so-so/ImGui/ImGuiWidgets.h"
-#include "Misc/Skybox.h"
-#include "Misc/ShaderEditor.h"
+
+#include "Misc/Terrain.h"
 
 #include "glm/ext.hpp"
 #include "imgui.h"
@@ -15,7 +15,6 @@ public:
 	TestLayer()
 		:Layer("Test") 
 	{
-
 	}
 
 	void OnAttach() override {
@@ -36,62 +35,105 @@ public:
 			"assets/textures/Skybox/skybox/front.jpg",
 			"assets/textures/Skybox/skybox/back.jpg"
 			});
-		m_Skybox = Skybox(m_TexCube);
+		//m_Skybox = Skybox(m_TexCube);
 
-		
-		{ // Plane
-			
+		soso::Renderer::SetSkyboxTexture(m_TexCube);
+
+		m_DefaultMesh = soso::Mesh::Create("assets/the_forgotten_knight/scene.gltf");
+		m_DebugMaterial = soso::Material::Create(m_ShaderLibrary->Get("PBR"));
+
+		// Plane
+		{	
 			Entity& ent = m_Plane;
 
 			ent.Name = "Plane";
 
-			ent.Mesh = soso::MeshGenerator::GeneratePlane(1, -2);
+			ent.Mesh = soso::MeshGenerator::GeneratePlane(1, 2);
 
-			ent.Transform.Position.y -= 1.8;
+			ent.Transform.Position.y -= 1.8f;
 			ent.Transform.Scale.x *= 2;
 			ent.Transform.Scale.z *= 2;
 
-			ent.OverrideMaterial = soso::Material::Create(m_ShaderLibrary->Get("BlinnPhong"));
+			ent.OverrideMaterial = m_DebugMaterial;
 
 			auto& overrideMaterial = ent.OverrideMaterial;
 
-			const std::string path = "assets/textures/jagged_slate_rock/";
+			const std::filesystem::path path = "assets/textures/jagged_slate_rock/";
 
-			auto texture = soso::TextureImporter::LoadTexture2D(path + "Normal.jpg");
-			overrideMaterial->Set("u_Normal", texture);
+			soso::TextureConfig config;
+			config.Format = soso::ImageFormat::SRGBA;
+
+			auto texture = soso::Texture2D::Create(config, path / "BaseColor.jpg");
+			overrideMaterial->Set("u_BaseColorTexture", texture);
+			
+			config.Format = soso::ImageFormat::RGBA8;
+
+			texture = soso::Texture2D::Create(config, path / "Normal.jpg");
+			overrideMaterial->Set("u_NormalTexture", texture);
 			overrideMaterial->Set("u_Material.HasNormalMap", true);
+			
+			texture = soso::Texture2D::Create(config, path / "Roughness.jpg");
+			overrideMaterial->Set("u_RoughnessTexture", texture);
 
-			texture = soso::TextureImporter::LoadTexture2D(path + "Specular.jpg");
-			overrideMaterial->Set("u_Specular", texture);
-
-			texture = soso::TextureImporter::LoadTexture2D(path + "BaseColor.jpg");
-			overrideMaterial->Set("u_Diffuse", texture);
-
-			overrideMaterial->Set("u_Material.DiffuseColor", glm::vec3(0.4f));
-			overrideMaterial->Set("u_Material.SpecularColor", glm::vec3(1.0f));
-
-			overrideMaterial->Set("u_Material.Shininess", 1.0f);
-			overrideMaterial->Set("u_Material.Emission", 0);
+			overrideMaterial->Set("u_Material.BaseColor", glm::vec3(1.0f));
+			overrideMaterial->Set("u_Material.Metallic", 0.0f);
+			overrideMaterial->Set("u_Material.Roughness", 0.5f);
 		}
 
-		m_DefaultMesh = soso::Mesh::Create("assets/Sponza/sponza.gltf");
-		m_DebugMaterial = soso::Material::Create(m_ShaderLibrary->Get("Debug"));
+		// Terrain
+		{
+			std::filesystem::path path = "assets/textures/jagged_slate_rock/Displacement.jpg";
+			m_Terrain = std::make_unique<Terrain>(path, 100.0f, 100);
+
+			Entity& ent = m_TerrainEnt;
+
+			ent.Mesh = m_Terrain->GetTerrainMesh();
+			ent.OverrideMaterial = m_DebugMaterial;
+		}
+
+		m_QTrans.Position = { 1, 1, 1 };
 
 		SetEntityGrid(0,0, m_DefaultMesh);
 	}
 
-	void SetEntityGrid(uint32_t width, uint32_t height, 
-						const std::shared_ptr<soso::Mesh> mesh, 
-						const std::shared_ptr<soso::Material> overrideMaterial = nullptr,  
-						float spacing = 3.14f) 
+	void OnUpdate(soso::Timestep ts) override {
+
+		m_FrameTime = ts;
+		m_TotalTime += ts.GetSeconds();
+		
+		m_Camera.OnUpdate(ts);
+
+		soso::Renderer::BeginScene(m_Camera);
+		{
+			
+			for (auto&& ent : m_Entities) {
+				
+				if (ent.Render)
+					soso::Renderer::SubmitMesh(ent.Mesh, ent.Transform.GetMatrix(), ent.OverrideMaterial);
+			}
+			
+			soso::Renderer::SubmitQuad(m_DebugMaterial, m_QTrans.GetMatrix());
+		}
+		soso::Renderer::EndScene();
+	}
+
+	void OnEvent(soso::Event& event) override {
+		m_Camera.OnEvent(event);
+	}
+
+	void SetEntityGrid(uint32_t width, uint32_t height,
+		const std::shared_ptr<soso::Mesh> mesh,
+		const std::shared_ptr<soso::Material> overrideMaterial = nullptr,
+		float spacing = 3.14f)
 	{
 		m_Entities.clear();
 		m_Entities.reserve(width * height);
 
 		m_Entities.emplace_back(m_Plane);
+		m_Entities.emplace_back(m_TerrainEnt);
 
 		for (uint32_t row = 0; row < height; row++) {
-			
+
 			for (uint32_t col = 0; col < width; col++) {
 
 				Entity& ent = m_Entities.emplace_back();
@@ -104,35 +146,6 @@ public:
 				ent.Transform.Position.z = row * spacing;
 			}
 		}
-	}
-
-	void OnUpdate(soso::Timestep ts) override {
-
-		m_FrameTime = ts;
-		m_TotalTime += ts.GetSeconds();
-		
-		m_Camera.OnUpdate(ts);
-
-		soso::Renderer::BeginScene(m_Camera);
-		{
-
-			soso::Renderer::SubmitFullscreenQuad();
-			
-			for (auto&& ent : m_Entities) {
-				
-				if (ent.Render)
-					soso::Renderer::SubmitMesh(ent.Mesh, ent.Transform.GetMatrix(), ent.OverrideMaterial);
-			}
-			
-			if (m_RenderSkybox) m_Skybox.Draw();
-
-			
-		}
-		soso::Renderer::EndScene();
-	}
-
-	void OnEvent(soso::Event& event) override {
-		m_Camera.OnEvent(event);
 	}
 
 	void OnImGuiRender() override {
@@ -160,6 +173,7 @@ public:
 
 			// ------------------------ 
 			static int selectedEntity = -1;
+			static bool dirtyMaterial = false;
 
 			std::string preview = (selectedEntity >= 0 && selectedEntity < m_Entities.size())
 				? std::format("Entity {}", selectedEntity)
@@ -172,8 +186,11 @@ public:
 					bool is_selected = (selectedEntity == i);
 					std::string label = std::format("Entity {}", i);
 
-					if (ImGui::Selectable(label.c_str(), is_selected))
+					if (ImGui::Selectable(label.c_str(), is_selected)) {
+
 						selectedEntity = i;
+						dirtyMaterial = false;
+					}
 
 					// ensure focus on the selected item
 					if (is_selected)
@@ -189,50 +206,53 @@ public:
 				Entity& e = m_Entities[selectedEntity];
 				ImGui::Text("Editing %s", preview.c_str());
 
+				ImGui::Separator();
+
+				soso::UI::ToggleSwitch("Should Render", &e.Render);
+
+
+
 				// Transform controls
 				ImGui::DragFloat3("Position", &e.Transform.Position.x, 0.1f);
 				ImGui::DragFloat3("Rotation", &e.Transform.Rotation.x, 1.0f, -360.0f, 360.0f, "%.1f°");
-				ImGui::DragFloat3("Scale", &e.Transform.Scale.x, 0.05f, 0.0f, 10.0f);
+				if (ImGui::DragFloat("Scale", &e.Transform.Scale.x, 0.01f, 15.0f)) {
+
+					e.Transform.Scale.y = e.Transform.Scale.x;
+					e.Transform.Scale.z = e.Transform.Scale.x;
+				}
+
+				if (ImGui::Button("Reset Transform"))
+					e.Transform = Transform();
 				
-				ImGui::NewLine(); 
+				ImGui::NewLine();
 				ImGui::Separator();
 				ImGui::NewLine();
 
-				static float uiSpecularStrenth = 0.5;
-				static float uiDiffuseStrenth = 0.5;
-				static float uiShininess = 0.5;
+				static glm::vec3 uiBaseColor(1.0);
+				static float uiMetalness = 0.5;
+				static float uiRoughness = 0.5;
 
-				ImGui::InputFloat("Specular Strenth", &uiSpecularStrenth);
-				ImGui::InputFloat("Diffuse Strenth", &uiDiffuseStrenth);
-				ImGui::InputFloat("Shininess", &uiShininess);
+				if (ImGui::DragFloat3("Base Color", &uiBaseColor.x, 0.01f) || ImGui::DragFloat("Metalness", &uiMetalness, 0.01f) || ImGui::DragFloat("Roughness", &uiRoughness, 0.01f))
+					dirtyMaterial = true;
 				
-				//uiSpecularStrenth = std::clamp(uiSpecularStrenth, 0.00001f, 20.0f);
-				//uiDiffuseStrenth = std::clamp(uiDiffuseStrenth, 0.00001f, 2.0f);
-
-				if (ImGui::Button("Update Mesh Materials")) {
+				if (dirtyMaterial) {
 
 					auto&& materials = e.Mesh->GetMaterials();
 
 					for (auto&& mat : materials) {
 
-						mat->Set("u_Material.SpecularColor", glm::vec3(uiSpecularStrenth));
-						mat->Set("u_Material.DiffuseColor", glm::vec3(uiDiffuseStrenth));
-						mat->Set("u_Material.Shininess", uiShininess);
+						mat->Set("u_Material.BaseColor", uiBaseColor);
+						mat->Set("u_Material.Metallic", uiMetalness);
+						mat->Set("u_Material.Roughness", uiRoughness);
 					}
 
 					if (e.OverrideMaterial) {
 
-						e.OverrideMaterial->Set("u_Material.SpecularColor", glm::vec3(uiSpecularStrenth));
-						e.OverrideMaterial->Set("u_Material.DiffuseColor", glm::vec3(uiDiffuseStrenth));
-						e.OverrideMaterial->Set("u_Material.Shininess", uiShininess);
+						e.OverrideMaterial->Set("u_Material.BaseColor", uiBaseColor);
+						e.OverrideMaterial->Set("u_Material.Metallic", uiMetalness);
+						e.OverrideMaterial->Set("u_Material.Roughness", uiRoughness);
 					}
 				}
-
-				if (ImGui::Button("Reset Transform"))
-					e.Transform = Transform();
-
-				soso::UI::ToggleSwitch("Should Render", &e.Render);
-
 
 				ImGui::Separator();
 			}
@@ -346,12 +366,17 @@ private:
 private:
 	std::vector<Entity> m_Entities;
 	Entity m_Plane;
+	Entity m_TerrainEnt;
 
 private:
 	std::shared_ptr<soso::Material> m_DebugMaterial = nullptr;
 	std::shared_ptr<soso::Mesh> m_DefaultMesh;
 	std::shared_ptr<soso::TextureCube> m_TexCube;
-	Skybox m_Skybox;
+
+	std::unique_ptr<Terrain> m_Terrain;
+
+	Transform m_QTrans{};
+	
 	bool m_RenderSkybox = true;
 	
 	//---------------------------------------------

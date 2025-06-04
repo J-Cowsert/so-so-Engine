@@ -1,4 +1,4 @@
-#type vertex
+#stage vertex
 #version 450 core
 
 layout(location = 0) in vec3 a_Position;
@@ -20,7 +20,7 @@ void main()
     gl_Position = (u_RotationOnlyViewProjection * vec4(a_Position, 1.0)).xyww;
 }
 
-#type fragment
+#stage fragment
 #version 450 core
 
 layout(location = 0) out vec4 Output;

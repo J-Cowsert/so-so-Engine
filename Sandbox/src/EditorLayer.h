@@ -23,25 +23,16 @@ public:
 	}
 
 	void OnUpdate(soso::Timestep ts) override {
-
-		if (soso::FrameBufferConfig config = m_FrameBuffer->GetConfig(); m_ViewportSize.x > 0.0f && m_ViewportSize.y > 0.0f &&
-			(config.Width != m_ViewportSize.x || config.Height != m_ViewportSize.y)) {
+		
+		const auto& config = m_FrameBuffer->GetConfig();
+		if ( m_ViewportSize.x > 0.0f && m_ViewportSize.y > 0.0f && (config.Width != m_ViewportSize.x || config.Height != m_ViewportSize.y)) {
 
 			m_FrameBuffer->Resize((uint32_t)m_ViewportSize.x, (uint32_t)m_ViewportSize.y);
 		}
 
-		m_FrameBuffer->Bind();
-		soso::Renderer::Clear(1, 0, 1, 1);
-
-	
 		{
 			m_RuntimeLayer->OnUpdate(ts);
 		}
-
-
-		// Clear our entity ID attachment to -1
-		m_FrameBuffer->ClearAttachment(1, -1);
-		m_FrameBuffer->Unbind();
 	}
 
 	void OnEvent(soso::Event& event) override {
@@ -60,7 +51,7 @@ public:
 		bool opt_fullscreen = opt_fullscreen_persistant;
 		static ImGuiDockNodeFlags dockspace_flags = ImGuiDockNodeFlags_None;
 		ImGuiWindowFlags window_flags = ImGuiWindowFlags_MenuBar | ImGuiWindowFlags_NoDocking;
-
+		
 		if (opt_fullscreen) {
 			ImGuiViewport* viewport = ImGui::GetMainViewport();
 			ImGui::SetNextWindowPos(viewport->Pos);
