@@ -114,6 +114,8 @@ namespace soso {
 		virtual void Bind() const = 0;
 		virtual void Unbind() const = 0;
 
+		virtual void SetData(const void* data, uint32_t size) = 0;
+
 		virtual const VertexBufferLayout& GetLayout() const = 0;
 		virtual void SetLayout(const VertexBufferLayout& layout) = 0;
 

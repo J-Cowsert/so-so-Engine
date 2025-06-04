@@ -6,9 +6,11 @@ namespace soso {
 
 	class OpenGLVertexArray : public VertexArray {
 	public:
-
 		OpenGLVertexArray();
 		virtual ~OpenGLVertexArray();
+
+		OpenGLVertexArray(const OpenGLVertexArray& other) = delete;
+		OpenGLVertexArray& operator=(const OpenGLVertexArray&) = delete;
 
 		void Bind() const override;
 		void Unbind() const override;
