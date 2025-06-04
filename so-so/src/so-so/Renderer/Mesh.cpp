@@ -19,6 +19,19 @@
 
 namespace soso {
 
+	namespace Utils {
+
+		static glm::mat4 Mat4FromAssimpMat4(const aiMatrix4x4& matrix) {
+			glm::mat4 result;
+			//the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
+			result[0][0] = matrix.a1; result[1][0] = matrix.a2; result[2][0] = matrix.a3; result[3][0] = matrix.a4;
+			result[0][1] = matrix.b1; result[1][1] = matrix.b2; result[2][1] = matrix.b3; result[3][1] = matrix.b4;
+			result[0][2] = matrix.c1; result[1][2] = matrix.c2; result[2][2] = matrix.c3; result[3][2] = matrix.c4;
+			result[0][3] = matrix.d1; result[1][3] = matrix.d2; result[2][3] = matrix.d3; result[3][3] = matrix.d4;
+			return result;
+		}
+	}
+
 	struct LogStream : public Assimp::LogStream {
 
 		static void Initialize() {
@@ -33,16 +46,6 @@ namespace soso {
 			SS_CORE_WARN("Assimp: {0}", message);
 		}
 	};
-
-	static glm::mat4 Mat4FromAssimpMat4(const aiMatrix4x4& matrix) {
-		glm::mat4 result;
-		//the a,b,c,d in assimp is the row ; the 1,2,3,4 is the column
-		result[0][0] = matrix.a1; result[1][0] = matrix.a2; result[2][0] = matrix.a3; result[3][0] = matrix.a4;
-		result[0][1] = matrix.b1; result[1][1] = matrix.b2; result[2][1] = matrix.b3; result[3][1] = matrix.b4;
-		result[0][2] = matrix.c1; result[1][2] = matrix.c2; result[2][2] = matrix.c3; result[3][2] = matrix.c4;
-		result[0][3] = matrix.d1; result[1][3] = matrix.d2; result[2][3] = matrix.d3; result[3][3] = matrix.d4;
-		return result;
-	}
 
 	static const uint32_t s_MeshImportFlags =
 		aiProcess_CalcTangentSpace |        // Create binormals/tangents just in case
@@ -61,7 +64,7 @@ namespace soso {
 
 		MESH_DEBUG("Loading Mesh: {0}", filepath);
 
-		m_Shader = Renderer::GetShaderLibrary()->Get("BlinnPhong");
+		m_DefaultShader = Renderer::GetShaderLibrary()->Get("PBR");
 
 		Assimp::Importer importer;
 		const aiScene* scene = importer.ReadFile(filepath.generic_string(), s_MeshImportFlags);
@@ -129,9 +132,9 @@ namespace soso {
 		// Materials
 		if (scene->HasMaterials()) {
 
-			MESH_DEBUG("---- Materials - {0} ----", filepath);
+			MESH_DEBUG("---- Materials: {0} ----", filepath);
+			MESH_DEBUG("Material Count: {0}", scene->mNumMaterials);
 
-			m_Textures.resize(scene->mNumTextures);
 			m_Materials.resize(scene->mNumMaterials);
 
 			for (uint32_t i = 0; i < scene->mNumMaterials; i++) {
@@ -142,101 +145,98 @@ namespace soso {
 				aiMaterial->Get(AI_MATKEY_NAME, name);
 				auto aiMaterialName = aiMaterial->GetName();
 
-				auto mat = Material::Create(m_Shader, aiMaterialName.data);
+				auto mat = Material::Create(m_DefaultShader, aiMaterialName.data);
 				m_Materials[i] = mat;
 
-				uint32_t textureCount = aiMaterial->GetTextureCount(aiTextureType_DIFFUSE);
-				MESH_DEBUG("    TextureCount = {0}", textureCount);
-
-
-				// Diffuse
-				glm::vec3 albedoColor(0.8f);
+				// Base Color
+				glm::vec3 BaseColor(0.8f);
 				aiColor3D aiColor;
-				if (aiMaterial->Get(AI_MATKEY_COLOR_DIFFUSE, aiColor) == AI_SUCCESS) {
+				if (aiMaterial->Get(AI_MATKEY_BASE_COLOR, aiColor) == AI_SUCCESS) {
 
-					albedoColor = { aiColor.r, aiColor.g, aiColor.b };
+					BaseColor = { aiColor.r, aiColor.g, aiColor.b };
 				}
-				mat->Set("u_Material.DiffuseColor", albedoColor);
+				mat->Set("u_Material.BaseColor", BaseColor);
 
 				// Emission
-				mat->Set("u_Material.Emission", 0.0f);
+				//mat->Set("u_Material.Emission", 0.0f);
+				
+				float roughness, metalness;
+				if (aiMaterial->Get(AI_MATKEY_ROUGHNESS_FACTOR, roughness) != AI_SUCCESS)
+					roughness = 0.5f;
 
-				// Specular
-				glm::vec3 specularColor(1.0);
-				if (aiMaterial->Get(AI_MATKEY_COLOR_SPECULAR, aiColor) == AI_SUCCESS) {
+				if (aiMaterial->Get(AI_MATKEY_METALLIC_FACTOR, metalness) != AI_SUCCESS)
+					metalness = 0.0f;
 
-					specularColor = { aiColor.r, aiColor.g, aiColor.b };
-				}
-				mat->Set("u_Material.SpecularColor", specularColor);
+				mat->Set("u_Material.Metallic", metalness);
+				mat->Set("u_Material.Roughness", roughness);
+				
 
-				// Shininess
-				float shininess;
-				if (aiMaterial->Get(AI_MATKEY_SHININESS, shininess) != AI_SUCCESS) {
-					shininess = 80.0;
-				}
-				mat->Set("u_Material.Shininess", shininess);
-
-				// Diffuse Map
+				// ========= Texture Maps ==========
 				aiString aiTexPath;
-				bool hasDiffuseMap = aiMaterial->GetTexture(aiTextureType_DIFFUSE, 0, &aiTexPath) == AI_SUCCESS;
 
-				if (hasDiffuseMap) {
+				// Helper lambda to load a 2D texture from either embedded or external file
+				auto loadTextureMap = [&](aiTextureType aiTexType, const std::string& uniformName, ImageFormat imageFormat = ImageFormat::RGBA8) {
 
-					MESH_DEBUG("tex name: {0}", std::string(aiTexPath.data));
-					std::filesystem::path path = filepath;
-					auto parentPath = path.parent_path();
-					MESH_DEBUG("Parent path: {0}", parentPath);
-					parentPath /= std::string(aiTexPath.data);
-					std::string texturePath = parentPath.string();
-					MESH_DEBUG("Diffuse map path: {0}", texturePath);
+					bool hasTexType = aiMaterial->GetTexture(aiTexType, 0, &aiTexPath) == AI_SUCCESS;
 
-					auto texture = TextureImporter::LoadTexture2D(texturePath);
+					if (hasTexType) {
 
-					if (texture->IsLoaded()) {
-						mat->Set("u_Diffuse", texture);
+						std::shared_ptr<Texture2D> texture;
+
+						if (auto aiTexture = scene->GetEmbeddedTexture(aiTexPath.C_Str())) {
+
+							TextureConfig config;
+							config.Format = imageFormat;
+							config.Width = aiTexture->mWidth;
+							config.Height = aiTexture->mHeight;
+
+							texture = Texture2D::Create(config, ByteBuffer(aiTexture->pcData, 1));
+
+							MESH_DEBUG("Loaded Embedded Texture Map, Type: {0}", aiTextureTypeToString(aiTexType));
+
+							mat->Set(uniformName, texture);
+
+							return true;
+						}
+						else {
+
+							std::filesystem::path path = filepath;
+							auto parentPath = path.parent_path();
+							auto texturePath = parentPath /= std::string(aiTexPath.data);
+
+							TextureConfig config;
+							config.Format = imageFormat;
+
+							texture = Texture2D::Create(config, texturePath);
+
+							MESH_DEBUG("Loaded Texture Map From File, Type: {0}, Path: {1}", aiTextureTypeToString(aiTexType), texturePath);
+
+							mat->Set(uniformName, texture);
+
+							return true;
+						}
 					}
-				}
 
-				// Specular Map
-				bool hasSpecularMap = aiMaterial->GetTexture(aiTextureType_SPECULAR, 0, &aiTexPath) == AI_SUCCESS;
+					return false;
+				};
 
-				if (hasSpecularMap) {
+				bool result;
 
-					std::filesystem::path path = filepath;
-					auto parentPath = path.parent_path();
-					MESH_DEBUG("Parent path: {0}", parentPath);
-					parentPath /= std::string(aiTexPath.data);
-					std::string texturePath = parentPath.string();
-					MESH_DEBUG("Specular map path: {0}", texturePath);
+				// Base Color Texture
+				result = loadTextureMap(aiTextureType_BASE_COLOR, "u_BaseColorTexture", ImageFormat::SRGBA);
 
-					auto texture = TextureImporter::LoadTexture2D(texturePath);
-					
-					if (texture->IsLoaded()) {
-						mat->Set("u_Specular", texture);
-					}
-				}
+				// Roughness Texture
+				result = loadTextureMap(aiTextureType_DIFFUSE_ROUGHNESS, "u_RoughnessTexture");
 
-				// Normal Map
+				// Metalness Texture
+				result = loadTextureMap(aiTextureType_METALNESS, "u_MetalnessTexture");
+
+				// Normal Texture
 				// Some assets use aiTextureType_NORMALS and others aiTextureType_HEIGHT for normals
-				bool hasNormalMap = aiMaterial->GetTexture(aiTextureType_NORMALS, 0, &aiTexPath) == AI_SUCCESS;
+				result = loadTextureMap(aiTextureType_NORMALS, "u_NormalTexture");
 
-				if (hasNormalMap) {
-					
-					std::filesystem::path path = filepath;
-					auto parentPath = path.parent_path();
-					MESH_DEBUG("Parent path: {0}", parentPath);
-					parentPath /= std::string(aiTexPath.data);
-					std::string texturePath = parentPath.string();
-					MESH_DEBUG("Normal Map path: {0}", texturePath);
-
-					auto texture = TextureImporter::LoadTexture2D(texturePath);
-
-					if (texture->IsLoaded()) {
-						mat->Set("u_Normal", texture);
-						mat->Set("u_Material.HasNormalMap", true);
-					}
-				}
-
+				if (result) 
+					mat->Set("u_Material.HasNormalMap", true);
 			}
 			// TODO: Set missing textures to defualt white textures
 		}
@@ -287,7 +287,7 @@ namespace soso {
 		m_VertexArray->AddVertexBuffer(m_VertexBuffer);
 		m_VertexArray->SetIndexBuffer(m_IndexBuffer);
 
-		m_Shader = Renderer::GetShaderLibrary()->Get("BlinnPhong");
+		m_DefaultShader = Renderer::GetShaderLibrary()->Get("PBR");
 	}
 
 	Mesh::~Mesh() {}
@@ -296,7 +296,7 @@ namespace soso {
 
 		aiNode* node = (aiNode*)assimpNode;
 
-		glm::mat4 localTransform = Mat4FromAssimpMat4(node->mTransformation);
+		glm::mat4 localTransform = Utils::Mat4FromAssimpMat4(node->mTransformation);
 		glm::mat4 transform = parentTransform * localTransform; // Position relative to the parant node's transform
 
 		for (uint32_t i = 0; i < node->mNumMeshes; i++) {
@@ -323,7 +323,7 @@ namespace soso {
 		SS_CORE_TRACE("Indicies Buffer Data: count: {0}. size: {1}", m_Indices.size(), m_Vertices.size() * sizeof(Index));
 		SS_CORE_TRACE("Verticies Buffer Data: count: {0}. size: {1}", m_Vertices.size(), m_Vertices.size() * sizeof(Vertex));
 		SS_CORE_TRACE("------------------");
-		SS_CORE_TRACE("Mesh has {0} submeshes, {1} materials, {2} textures", m_Submeshes.size(), m_Materials.size(), m_Textures.size());
+		SS_CORE_TRACE("Mesh has {0} submeshes, {1} materials", m_Submeshes.size(), m_Materials.size());
 
 		float minU = 1.0f, maxU = 0.0f, minV = 1.0f, maxV = 0.0f;
 		for (const auto& vertex : m_Vertices) {

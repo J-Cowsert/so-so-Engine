@@ -31,6 +31,7 @@ namespace soso {
 	static_assert(sizeof(Index) == 3 * sizeof(uint32_t));
 
 	struct Submesh {
+
 		glm::mat4 Transform;
 		glm::mat4 LocalTransform;
 		
@@ -46,6 +47,7 @@ namespace soso {
     class Mesh {
 
 		friend class Renderer;
+		friend class OpenGLRenderer;
 
     public:
 		static std::shared_ptr<Mesh> Create(const std::filesystem::path& filepath);
@@ -58,7 +60,7 @@ namespace soso {
 		const std::vector<Submesh>& GetSubmeshes() const { return m_Submeshes; }
 		const std::vector<Vertex>& GetVertices() const { return m_Vertices; }
 		const std::vector<Index>& GetIndices() const { return m_Indices; }
-		std::shared_ptr<Shader> GetShader() const { return m_Shader; }
+		std::shared_ptr<Shader> GetShader() const { return m_DefaultShader; }
 		std::vector<std::shared_ptr<Material>> GetMaterials() const { return m_Materials; }
 
 		const std::string& GetFilepath() const { return m_Filepath.string(); }
@@ -78,9 +80,7 @@ namespace soso {
 		std::vector<Index> m_Indices;
 
 		// Materials
-		std::shared_ptr<Shader> m_Shader; // Should be materials responsibility
-		std::shared_ptr<Texture2D> m_DefaultTexture;
-		std::vector<std::shared_ptr<Texture2D>> m_Textures; // Should be materials responsibility
+		std::shared_ptr<Shader> m_DefaultShader;
 		std::vector<std::shared_ptr<Material>> m_Materials;
 
 	private:
