@@ -1,5 +1,5 @@
 
-#type vertex
+#stage vertex
 #version 450 core
 
 layout(location = 0) in vec3 a_Position;
@@ -12,7 +12,11 @@ layout(std140, binding = 0) uniform Camera
 {
     mat4 u_ViewProjection;
     mat4 u_RotationOnlyViewProjection;
-    vec3 u_CameraPos;
+    vec4 u_CameraPos;
+};
+
+layout(std140, binding = 4) uniform ShadowLightView {
+    mat4 u_LightViewProjection;
 };
 
 layout(std140, binding = 1) uniform Transform 
@@ -25,10 +29,9 @@ struct VertexOutput
     vec3 WorldPosition;
     vec3 Normal;
     vec2 TexCoord;
-
     mat3 TangentBasis;
-
     vec3 CameraPos;
+    vec4 FragLightPosition; // for shadows. TODO: rename
 };
 
 layout(location = 0) out VertexOutput Output;
@@ -38,28 +41,28 @@ void main()
     Output.WorldPosition = vec3(u_Transform * vec4(a_Position, 1.0)); 
     Output.TexCoord = a_TexCoord;
     Output.Normal = mat3(transpose(inverse(u_Transform))) * a_Normal;
-
     Output.TangentBasis = mat3(u_Transform) * mat3(a_Tangent, a_Bitangent, a_Normal);
-
-    Output.CameraPos = u_CameraPos;
+    Output.CameraPos = vec3(u_CameraPos);
+    Output.FragLightPosition = u_LightViewProjection * (u_Transform * vec4(a_Position, 1.0));
 
     gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0);
 }
 
 //=================================================================================================
 
-#type fragment
+#stage fragment
 #version 450 core
+
+#define PI 3.14159265359
 
 struct VertexOutput 
 {
     vec3 WorldPosition;
     vec3 Normal;
     vec2 TexCoord;
-
     mat3 TangentBasis;
-
     vec3 CameraPos;
+    vec4 FragLightPosition;
 };
 
 layout(location = 0) in VertexOutput Input;
@@ -91,6 +94,8 @@ layout(binding = 0) uniform sampler2D u_Diffuse;
 layout(binding = 1) uniform sampler2D u_Specular;	
 layout(binding = 2) uniform sampler2D u_Normal;
 
+layout(binding = 3) uniform sampler2D u_ShadowMap;
+
 void main() {
 
     // === standard vectors ===
@@ -106,9 +111,8 @@ void main() {
     vec3  V  = normalize(Input.CameraPos - Input.WorldPosition);
     vec3  H  = normalize(L + V);
 
-    // === base surface data ===
+    // === base surface ===
     vec3  albedo   = texture(u_Diffuse, Input.TexCoord).rgb * u_Material.DiffuseColor.rgb;
-    vec3  specTint = texture(u_Specular, Input.TexCoord).rgb * u_Material.SpecularColor.rgb;
 
     // === lighting ===
     vec3 ambient  = u_DirLight.Ambient.xyz  * albedo;
@@ -116,11 +120,36 @@ void main() {
     float diff    = max(dot(N, L), 0.0);
     vec3 diffuse  = u_DirLight.Diffuse.xyz * diff * albedo;
 
-    float specPow = pow(max(dot(N, H), 0.0), u_Material.Shininess);
+    float specPow = pow(max(dot(N, H), 0.0), u_Material.Shininess) * (u_Material.Shininess + 2) / 2 * PI;
+    vec3  specTint = texture(u_Specular, Input.TexCoord).rgb * u_Material.SpecularColor.rgb / 4. * PI;
     vec3 specular = u_DirLight.Specular.xyz * specPow * specTint;
 
-    vec3 result = ambient + diffuse + specular;
+
+    // === Shadows ===
+
+    float shadow = 0.;
+    vec3 lightCoord = Input.FragLightPosition.xyz / Input.FragLightPosition.w;
+    if (lightCoord.z <= 1.) {
+
+        lightCoord = (lightCoord + 1.) / 2.;
+
+        float closestDepth = texture(u_ShadowMap, lightCoord.xy).r;
+		
+        float currDepth = lightCoord.z;
+
+		//float closestDepth = texture(u_ShadowMap, vec3(lightCoord.xy, currDepth));
+
+		float bias = max(0.005 * (1.0 - dot(N, L)), 0.0005);
+
+        if (currDepth - bias > closestDepth) {
+
+            shadow = 1.;
+        }
+    }
 
 
-    FragmentColor = vec4(result, 1.0);
+    vec3 result = ambient + (diffuse / PI) * (1. - shadow) + specular * (1. - shadow);
+
+
+    FragmentColor = vec4(result, 1.);
 }
