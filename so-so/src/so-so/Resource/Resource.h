@@ -8,7 +8,7 @@
 
 namespace soso {
 	
-	enum class ResourceFlag : uint8_t {
+	enum class ResourceFlag : uint32_t {
 		
 		None = 0,
 		Invalid = BIT(0),
@@ -30,7 +30,7 @@ namespace soso {
 	class Resource {
 	public:
 		ResourceID ID = 0;
-		uint8_t Flags = (uint8_t)ResourceFlag::None;
+		uint32_t Flags = (uint32_t)ResourceFlag::None;
 
 		virtual ~Resource() {}
 
@@ -46,10 +46,10 @@ namespace soso {
 		}
 
 	private:
-		bool IsValid() const { return ((Flags & (uint8_t)ResourceFlag::Invalid) | (Flags & (uint8_t)ResourceFlag::Missing)) == 0; }
-		bool IsFlagSet(ResourceFlag flag) const { return Flags & (uint8_t)flag; }
+		bool IsValid() const { return ((Flags & (uint32_t)ResourceFlag::Invalid) | (Flags & (uint32_t)ResourceFlag::Missing)) == 0; }
+		bool IsFlagSet(ResourceFlag flag) const { return Flags & (uint32_t)flag; }
 
-		void EnableFlag(ResourceFlag flag) { Flags |= (uint8_t)flag; }
-		void DisableFlag(ResourceFlag flag) { Flags &= ~(uint8_t)flag; }
+		void EnableFlag(ResourceFlag flag) { Flags |= (uint32_t)flag; }
+		void DisableFlag(ResourceFlag flag) { Flags &= ~(uint32_t)flag; }
 	};
 }
