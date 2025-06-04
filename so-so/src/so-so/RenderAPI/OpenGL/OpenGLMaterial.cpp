@@ -3,6 +3,8 @@
 
 #include <glad/glad.h>
 
+// WIP
+
 namespace soso {
 
     OpenGLMaterial::OpenGLMaterial(const std::shared_ptr<Shader>& shader, const std::string& name) 
@@ -24,7 +26,6 @@ namespace soso {
 
         auto glMat = std::static_pointer_cast<OpenGLMaterial>(material);
         m_UniformByteBuffer = ByteBuffer::Copy(glMat->m_UniformByteBuffer.Data, glMat->m_UniformByteBuffer.Size);
-
     }
 
     OpenGLMaterial::~OpenGLMaterial() {
@@ -34,7 +35,7 @@ namespace soso {
 
     void OpenGLMaterial::Bind() {
 
-        m_Shader->Bind();
+        //m_Shader->Bind();
 
         if (m_IsDirty) {
 
@@ -48,15 +49,13 @@ namespace soso {
             m_IsDirty = false;
         }
             
-        
-
         if (m_UniformBuffer) {
 
             m_UniformBuffer->SetData(m_UniformByteBuffer.Data, static_cast<uint32_t>(m_UniformByteBuffer.Size));
             m_UniformBuffer->Bind();
         }
        
-        for (auto&& [binding, texture] : m_Textures) {
+        for (auto&& [binding, texture] : m_Texture2Ds) {
             
             // TODO: Look into sampler objects
             if (texture) texture->Bind(binding);
@@ -149,7 +148,21 @@ namespace soso {
         Set<glm::mat4>(name, value);
     }
 
-    void OpenGLMaterial::Set(const std::string& name, const std::shared_ptr<Texture2D>& texture) {
+    void OpenGLMaterial::Set(const std::string& name, const std::shared_ptr<Texture2D>& value) {
+
+        const auto& info = FindResourceInfo(name);
+
+        //SS_CORE_ASSERT(info, "Could not find info");
+
+        if (!info) {
+            SS_CORE_WARN("Could not find resource: {0}", name);
+            return;
+        }
+
+        m_Texture2Ds[info->GetBindingPoint()] = value;
+    }
+
+    void OpenGLMaterial::Set(const std::string& name, const std::shared_ptr<TextureCube>& value) {
 
         const auto& info = FindResourceInfo(name);
 
@@ -160,7 +173,16 @@ namespace soso {
             return;
         }
 
-        m_Textures[info->GetBindingPoint()] = texture;
+        m_Texture2Ds[info->GetBindingPoint()] = value;
+    }
+
+    std::shared_ptr<TextureCube> OpenGLMaterial::GetTextureCube(const std::string& name) {
+        SS_CORE_ASSERT(false, "not implemented");
+
+        const auto& info = FindResourceInfo(name);
+        SS_CORE_ASSERT(info, "Could not find info");
+        auto& texCube = m_Texture2Ds.at(info->GetBindingPoint());
+        return nullptr;
     }
 
 }
