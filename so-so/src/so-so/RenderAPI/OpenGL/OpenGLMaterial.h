@@ -11,7 +11,7 @@ namespace soso {
 		OpenGLMaterial(std::shared_ptr<Material> material, const std::string& name);
 		virtual ~OpenGLMaterial() override;
 	
-		SS_FORCE_INLINE void Bind() override; // Material shouldn't be responsible for binding before the draw call. This should probably happen in the openglrenderer.
+		SS_FORCE_INLINE void Bind() override;
 	
 		std::shared_ptr<Shader> GetShader() const override { return m_Shader; }
 
@@ -69,7 +69,7 @@ namespace soso {
 		std::map<uint32_t, std::shared_ptr<Texture>> m_Texture2Ds; // <bindingPoint, texture2d>
 
 		ByteBuffer m_UniformByteBuffer;
-		std::shared_ptr<UniformBuffer> m_UniformBuffer; // sus - should I cache this?
+		std::shared_ptr<UniformBuffer> m_UniformBuffer; // Cached
 		bool m_IsDirty = false;
 	};
 }
