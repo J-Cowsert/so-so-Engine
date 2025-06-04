@@ -3,12 +3,15 @@
 
 namespace soso {
 
-    std::shared_ptr<Mesh> MeshGenerator::GeneratePlane(float size, int resolution) {
+    std::shared_ptr<Mesh> MeshGenerator::GeneratePlane(float size, uint32_t resolution) {
 
+        resolution = glm::max(1, (int)resolution);
+        
         std::vector<Vertex> vertices;
         std::vector<Index> indices;
-
-        resolution = glm::max(1, resolution);
+        
+        vertices.reserve(static_cast<size_t>(resolution + 1) * (resolution + 1));
+        indices.reserve(static_cast<size_t>(resolution) * resolution * 2);
 
         const float step = size / static_cast<float>(resolution);
         const float startPos = -size * 0.5f;
@@ -50,6 +53,6 @@ namespace soso {
             }
         }
 
-        return std::make_shared<Mesh>(vertices, indices, glm::mat4(1.0));
+        return Mesh::Create(vertices, indices, glm::mat4(1.0));
     }
 }

@@ -7,7 +7,6 @@ namespace soso {
 	class MeshGenerator {
 	public:
 
-		static std::shared_ptr<Mesh> GeneratePlane(float size, int resolution);
-
+		static std::shared_ptr<Mesh> GeneratePlane(float size, uint32_t resolution);
 	};
 }
