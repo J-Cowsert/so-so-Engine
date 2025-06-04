@@ -15,6 +15,6 @@ namespace soso {
 		static float GetMouseY();
 
 		static void SetCursorMode(CursorMode cursorMode);
-		static CursorMode GetCursorMode(CursorMode mode);
+		static CursorMode GetCursorMode();
 	};
 }
