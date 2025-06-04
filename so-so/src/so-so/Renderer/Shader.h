@@ -13,8 +13,7 @@ namespace soso {
 		None = 0,
 		Vertex,
 		Geometry, // TODO
-		Fragment,
-		Compute // TODO: compute shaders do not link with vertex/fragment shaders — they are a standalone pipeline
+		Fragment
 	};
 
 	enum class ShaderUniformType {
