@@ -15,7 +15,7 @@ namespace soso {
 
 		void SetData(const void* data, uint32_t size, uint32_t offset = 0) override;
 
-		uint32_t GetBindingPoint() { return m_BindingPoint; }
+		uint32_t GetBindingPoint() const { return m_BindingPoint; }
 
 	private:
 		uint32_t m_RendererID;
