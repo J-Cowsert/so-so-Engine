@@ -29,4 +29,5 @@ namespace soso {
 
 		glNamedBufferSubData(m_RendererID, offset, size, data);
 	}
+
 }
