@@ -1,36 +1,41 @@
 workspace "so-so"
-	architecture "x64"
-	startproject "Sandbox"
 
-	configurations 
-	{
-		"Debug",
-		"Release",
-		"Dist"
+	startproject "Sandbox"
+	configurations { "Debug", "Release", "Dist" }
+	conformancemode "On"
+
+	staticruntime "Off"
+	language "C++"
+	cppdialect "C++23"
+
+	flags { "MultiProcessorCompile" }
+
+	defines {
+		"_CRT_SECURE_NO_WARNINGS",
+		"NOMINMAX",
+		"SPDLOG_USE_STD_FORMAT",
+		"_SILENCE_CXX17_CODECVT_HEADER_DEPRECATION_WARNING"
 	}
 
+	filter "action:vs*"
+        linkoptions { "/ignore:4099" } -- Disable no PDB found warning
+
+	filter "language:C++ or language:C"
+		architecture "x86_64"
+	
+
+--==================================================================================================================
 
 Outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 
--- -- Include directories relative to root folder (solution directory)
--- IncludeDir = {}
--- IncludeDir["GLFW"] = "so-so/vendor/GLFW/include"
--- IncludeDir["Glad"] = "so-so/vendor/Glad/include"
--- IncludeDir["ImGui"] = "so-so/vendor/imgui"
--- IncludeDir["glm"] = "so-so/vendor/glm"
-
-
--- This includes the premake5.lua file from forked glfw repo into project "so-so"
 include "so-so/vendor/GLFW"
 include "so-so/vendor/Glad"
 include "so-so/vendor/imgui"
 
 project "so-so"
-	location "so-so"
 	kind "StaticLib"
-	language "C++"
-	cppdialect "C++23"
-	staticruntime "on"
+	location "so-so"
+	staticruntime "Off"
 
 	targetdir ("bin/" .. Outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. Outputdir .. "/%{prj.name}")
@@ -43,15 +48,14 @@ project "so-so"
 		"%{prj.name}/src/**.h",
 		"%{prj.name}/src/**.cpp",
 
-		"%{prj.name}/vendor/glm/glm/**.hpp", -- slow compile times
+		"%{prj.name}/vendor/glm/glm/**.hpp",
 		"%{prj.name}/vendor/glm/glm/**.inl",
 
 		"%{prj.name}/vendor/stb_image/stb_image.cpp",
 
 		"%{prj.name}/vendor/spirv-cross/**.hpp", 
-		"%{prj.name}/vendor/spirv-cross/**.cpp", -- slow compile times. TODO: Get binaries
+		"%{prj.name}/vendor/spirv-cross/**.cpp", 
 	}
-	
 	
 	includedirs
 	{
@@ -67,8 +71,7 @@ project "so-so"
 		"%{prj.name}/vendor/stb_image",
 		"%{prj.name}/vendor/assimp/include",
 
-		"%{prj.name}/vendor/shaderc/include/libshaderc",
-        "%{prj.name}/vendor/shaderc/include/libshaderc_util",
+		"%{prj.name}/vendor/shaderc/include",
         "%{prj.name}/vendor/spirv-cross",
 	}
 
@@ -81,7 +84,6 @@ project "so-so"
 		"dwmapi.lib",
 	}
 
-
 	filter "system:windows"
 		
 		systemversion "latest"
@@ -90,17 +92,6 @@ project "so-so"
 		{
 			"SS_PLATFORM_WINDOWS",
 			"GLFW_INCLUDE_NONE"
-		}
-
-		
-		libdirs 
-		{
-			"%{prj.location}/vendor/shaderc/bin/windows/%{cfg.buildcfg}",
-		}
-
-		links
-		{
-			"shaderc_combined.lib" -- Shaderc is fucking huge. Figure out how to reduce it's size
 		}
 
 	filter "system:linux"
@@ -129,13 +120,11 @@ project "so-so"
 		runtime "Release"
 		optimize "On"
 
+--==================================================================================================================
 
 project "Sandbox"
-	location "Sandbox"
 	kind "ConsoleApp"
-	language "C++"
-	cppdialect "C++23"
-	staticruntime "on"
+	location "Sandbox"
 
 	targetdir ("bin/" .. Outputdir .. "/%{prj.name}")
 	objdir ("bin-int/" .. Outputdir .. "/%{prj.name}")
@@ -160,9 +149,6 @@ project "Sandbox"
         "so-so/vendor/imgui",
         "so-so/vendor/glm",
         "so-so/vendor/stb_image",
-
-        "%{prj.name}/vendor/shaderc/include/libshaderc",
-        "%{prj.name}/vendor/shaderc/include/libshaderc_util",
     }
 
 	links 
@@ -181,35 +167,9 @@ project "Sandbox"
 
 		libdirs
 		{
-			"%{wks.location}/so-so/vendor/assimp/bin/windows/%{cfg.buildcfg}",
+			"%{wks.location}/so-so/vendor/assimp/lib/windows/%{cfg.buildcfg}",
+			"%{wks.location}/so-so/vendor/shaderc/lib/windows/%{cfg.buildcfg}",
 		}
-
-
-	filter { "system:windows", "configurations:Debug" }
-
-
-		links 
-		{
-			"assimp-vc143-mtd.lib"
-
-		}
-
-		postbuildcommands {
-			'{COPY} "../so-so/vendor/assimp/bin/windows/Debug/assimp-vc143-mtd.dll" "%{cfg.targetdir}"',
-		}
-			
-
-	filter { "system:windows", "configurations:Release" }
-
-		links 
-		{
-			"assimp-vc143-mt.lib"
-		}
-
-		postbuildcommands {
-			'{COPY} "../so-so/vendor/assimp/bin/windows/Release/assimp-vc143-mt.dll" "%{cfg.targetdir}"',
-		}
-
 
 	filter "system:linux"
 
@@ -221,6 +181,34 @@ project "Sandbox"
 		libdirs 
 		{
 			"so-so/vendor/assimp/bin/linux/%{cfg.buildcfg}"
+		}
+
+
+	filter { "system:windows", "configurations:Debug" }
+
+		links 
+		{
+			"assimp-vc143-MTd.lib",
+			"shaderc-shared-MDd.lib"
+		}
+
+		postbuildcommands {
+			'{COPY} "../so-so/vendor/assimp/lib/windows/Debug/assimp-vc143-MTd.dll" "%{cfg.targetdir}"',
+			'{COPY} "../so-so/vendor/shaderc/lib/windows/Debug/shaderc-shared-MDd.dll" "%{cfg.targetdir}"',
+		}
+			
+
+	filter { "system:windows", "configurations:Release" }
+
+		links 
+		{
+			"assimp-vc143-MT.lib",
+			"shaderc-shared-MD.lib"
+		}
+
+		postbuildcommands {
+			'{COPY} "../so-so/vendor/assimp/lib/windows/Release/assimp-vc143-MT.dll" "%{cfg.targetdir}"',
+			'{COPY} "../so-so/vendor/shaderc/lib/windows/Release/shaderc-shared-MD.dll" "%{cfg.targetdir}"',
 		}
 
 
