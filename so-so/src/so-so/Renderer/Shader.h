@@ -13,7 +13,8 @@ namespace soso {
 		None = 0,
 		Vertex,
 		Geometry, // TODO
-		Fragment
+		Fragment,
+		Compute
 	};
 
 	enum class ShaderUniformType {

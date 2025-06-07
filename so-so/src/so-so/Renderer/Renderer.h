@@ -125,7 +125,6 @@ namespace soso {
 			std::shared_ptr<VertexArray> CubeVertexArray;
 			std::shared_ptr<VertexArray> FSQuadVertexArray; // Move to primative geometry data and rename
 
-
 			std::shared_ptr<TextureCube> SkyboxTexture;
 			std::shared_ptr<Material> SkyboxMaterial;
 

@@ -256,7 +256,7 @@ namespace soso {
 		auto& shadowMapShader = data->ShadowMapShader;
 		auto& transformUB = data->TransformBufferUBObject;
 
-		for (const auto& dc : data->DrawList) {
+		for (auto&& dc : data->DrawList) {
 
 			s_RendererAPI->DrawMesh(dc.Mesh, transformUB, dc.Transform, dc.MaterialOverride, shadowMapShader);
 		}
@@ -289,7 +289,7 @@ namespace soso {
 			// opaque geometry pass
 
 			glBindTextureUnit(7, data->ShadowPassFrameBuffer->GetDepthAttachmentRendererID());
-			for (const auto& dc : data->DrawList) {
+			for (auto&& dc : data->DrawList) {
 
 				s_RendererAPI->DrawMesh(dc.Mesh, transformUB, dc.Transform, dc.MaterialOverride);
 			}

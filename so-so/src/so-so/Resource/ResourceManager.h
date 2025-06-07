@@ -1,6 +1,6 @@
 #pragma once
 
-#include "so-so/Core/core.h"
+#include "so-so/Core/Core.h"
 
 #include "Resource.h"
 

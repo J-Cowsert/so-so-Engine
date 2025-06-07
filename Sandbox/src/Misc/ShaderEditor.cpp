@@ -4,6 +4,7 @@
 
 #include "misc/cpp/imgui_stdlib.h"
 
+#include <fstream>
 #include <ostream>
 #include <istream>
 

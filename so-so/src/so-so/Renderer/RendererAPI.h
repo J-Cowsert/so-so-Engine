@@ -31,7 +31,7 @@ namespace soso {
 		virtual void DrawArrays(const std::shared_ptr<VertexArray>& vertexArray, uint32_t vertexCount) = 0;
 
 		virtual void DrawSkybox(const std::shared_ptr<Material> material, const std::shared_ptr<VertexArray>& cubeVertexArray) = 0; // TODO: Move cube vertex array into opengl renderer.
-		virtual void DrawMesh(std::shared_ptr<Mesh> mesh, std::shared_ptr<UniformBuffer> transformUB, const glm::mat4& transform = glm::mat4(1.0f), const std::shared_ptr<Material>& materialOverride = nullptr, const std::shared_ptr<Shader>& shaderOverride = nullptr) = 0;
+		virtual void DrawMesh(std::shared_ptr<Mesh>& mesh, std::shared_ptr<UniformBuffer>& transformUB, const glm::mat4& transform = glm::mat4(1.0f), const std::shared_ptr<Material>& materialOverride = nullptr, const std::shared_ptr<Shader>& shaderOverride = nullptr) = 0;
 
 		virtual void DrawQuad(std::shared_ptr<Material> material, const glm::mat4& transform = glm::mat4(1.0f)) = 0;
 

@@ -5,7 +5,6 @@
 #include "Input.h"
 #include "Utils.h"
 #include "so-so/Renderer/Renderer.h"
-#include "glad/glad.h" // This shouldnt be here
 
 namespace soso {
 
@@ -60,7 +59,7 @@ namespace soso {
 	void Application::Run() {
 
 		while (m_Running) {
-			
+
 			float time = Time::GetTime();
 			Timestep timestep = time - m_LastFrameTime;
 			m_LastFrameTime = time;

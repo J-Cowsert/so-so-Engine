@@ -18,7 +18,7 @@ namespace soso {
 		void DrawArrays(const std::shared_ptr<VertexArray>& vertexArray, uint32_t vertexCount) override final;
 
 		void DrawSkybox(const std::shared_ptr<Material> material, const std::shared_ptr<VertexArray>& vertexArray) override final;
-		void DrawMesh(std::shared_ptr<Mesh> mesh, std::shared_ptr<UniformBuffer> transformUB, const glm::mat4& transform = glm::mat4(1.0f), const std::shared_ptr<Material>& materialOverride = nullptr, const std::shared_ptr<Shader>& shaderOverride = nullptr) override final;
+		void DrawMesh(std::shared_ptr<Mesh>& mesh, std::shared_ptr<UniformBuffer>& transformUB, const glm::mat4& transform = glm::mat4(1.0f), const std::shared_ptr<Material>& materialOverride = nullptr, const std::shared_ptr<Shader>& shaderOverride = nullptr) override final;
 		
 		void DrawQuad(std::shared_ptr<Material> material, const glm::mat4& transform = glm::mat4(1.0f)) override final {}
 	};

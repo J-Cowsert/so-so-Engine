@@ -109,7 +109,7 @@ namespace soso {
 		glDepthFunc(GL_LESS);
 	}
 
-	void OpenGLRenderer::DrawMesh(std::shared_ptr<Mesh> mesh, std::shared_ptr<UniformBuffer> transformUB, const glm::mat4& transform, const std::shared_ptr<Material>& materialOverride, const std::shared_ptr<Shader>& shaderOverride) {
+	void OpenGLRenderer::DrawMesh(std::shared_ptr<Mesh>& mesh, std::shared_ptr<UniformBuffer>& transformUB, const glm::mat4& transform, const std::shared_ptr<Material>& materialOverride, const std::shared_ptr<Shader>& shaderOverride) {
 		
 		mesh->m_VertexArray->Bind();
 

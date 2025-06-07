@@ -14,6 +14,7 @@
 
 #include <spirv_cross.hpp>
 #include <spirv_glsl.hpp>
+#include <fstream>
 
 #define SHADER_DEBUG_LOG false // Toggle for debug logging
 
@@ -176,7 +177,6 @@ namespace soso {
 			SS_CORE_ASSERT(false, "");
 			return (shaderc_shader_kind)0;
 		}
-
 
 		static const char* GetCacheDirectory() {
 			

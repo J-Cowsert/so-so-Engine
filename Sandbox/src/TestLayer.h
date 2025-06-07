@@ -19,6 +19,8 @@ public:
 
 	void OnAttach() override {
 
+		soso::ScopedTimer timer("TestLayer::OnAttach()");
+
 		SS_INFO("Current working directory: {0}", std::filesystem::current_path().string());
 
 		float width = (float)soso::Application::Get().GetWindow().GetWidth(),
@@ -39,7 +41,7 @@ public:
 
 		soso::Renderer::SetSkyboxTexture(m_TexCube);
 
-		m_DefaultMesh = soso::Mesh::Create("assets/the_forgotten_knight/scene.gltf");
+		m_DefaultMesh = soso::Mesh::Create("assets/Sponza/sponza.gltf");
 		m_DebugMaterial = soso::Material::Create(m_ShaderLibrary->Get("PBR"));
 
 		// Plane

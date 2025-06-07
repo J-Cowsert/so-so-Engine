@@ -1,8 +1,14 @@
 #pragma once
 
-#include "so-so/Renderer/Mesh.h"
-
 #include "so-so/Core/ByteBuffer.h"
+
+#include <memory>
+#include <filesystem>
+
+namespace soso {
+
+	class Mesh;
+};
 
 class Terrain {
 public:

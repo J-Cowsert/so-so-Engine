@@ -1,9 +1,10 @@
 #pragma once
 
-#include "so-so/Core/core.h"
+#include "so-so/Core/Core.h"
 #include "so-so/Core/ByteBuffer.h"
 
 #include <string>
+#include <filesystem>
 
 namespace soso {
 

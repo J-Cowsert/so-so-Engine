@@ -94,19 +94,26 @@ namespace soso {
 	OpenGLTexture2D::OpenGLTexture2D(const TextureConfig& config, ByteBuffer data)
 		: m_Config(config)
 	{
-		ImageResult result;
 
-		result = TextureImporter::LoadImageFromBuffer(data);
-		if (!result.Buffer.Data) {
+		if (config.Height == 0) {
 
-			result = TextureImporter::LoadImageFromFile("Resources/Texture/error_texture_256.png");
-			SS_CORE_ASSERT(result.Buffer.Data, "");
+			ImageResult result;
+			result = TextureImporter::LoadImageFromBuffer(data);
+			if (!result.Buffer.Data) {
+
+				result = TextureImporter::LoadImageFromFile("Resources/Texture/error_texture_256.png");
+				SS_CORE_ASSERT(result.Buffer.Data, "");
+			}
+
+			m_ImageData = result.Buffer;
+			m_Config.Format = (config.Format == ImageFormat::SRGB || config.Format == ImageFormat::SRGBA) ? config.Format : result.Format; // Might break if image result format is HDR but config.format is passed in as SRGB
+			m_Config.Width = result.Width;
+			m_Config.Height = result.Height;
+		} 
+		else {
+
+			m_ImageData = ByteBuffer::Copy(data.Data, data.Size); // If this is stored in the future size need to recalculated based on the image format
 		}
-
-		m_ImageData = result.Buffer;
-		m_Config.Format = (config.Format == ImageFormat::SRGB || config.Format == ImageFormat::SRGBA) ? config.Format : result.Format; // Might break if image result format is HDR but config.format is passed in as SRGB
-		m_Config.Width = result.Width;
-		m_Config.Height = result.Height;
 
 		m_InternalFormat = Utils::SosoImageFormatToGLInternalFormat(m_Config.Format);
 		m_DataFormat = Utils::SosoImageFormatToGLDataFormat(m_Config.Format);

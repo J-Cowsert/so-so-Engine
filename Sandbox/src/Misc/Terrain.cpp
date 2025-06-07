@@ -2,6 +2,8 @@
 
 #include "so-so/Resource/TextureImporter.h"
 
+#include "so-so/Renderer/Mesh.h"
+
 namespace Utils {
 
     float SampleHeightBilinear(const std::vector<float>& heights, uint32_t imgW, uint32_t imgH, float u, float v) {
