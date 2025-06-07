@@ -1,13 +1,13 @@
 # Directories
-.vs/
 
-**/bin/
-!vendor/premake/bin/
+!/vendor/bin
+
+bin/
 bin-int/
 
-Notes/
-
 #Visual Studio files
+
+.vs/
 **.sln
 **.vcxproj
 **.vcxproj.filters
