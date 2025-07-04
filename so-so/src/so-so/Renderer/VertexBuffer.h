@@ -120,6 +120,6 @@ namespace soso {
 		virtual void SetLayout(const VertexBufferLayout& layout) = 0;
 
 		static std::shared_ptr<VertexBuffer> Create(uint32_t size);
-		static std::shared_ptr<VertexBuffer> Create(void* verticies, uint32_t size);
+		static std::shared_ptr<VertexBuffer> Create(const void* verticies, uint32_t size);
 	};
 }

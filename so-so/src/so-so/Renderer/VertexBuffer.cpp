@@ -20,7 +20,7 @@ namespace soso {
 		return nullptr;
 	}
 
-	std::shared_ptr<VertexBuffer> VertexBuffer::Create(void* verticies, uint32_t size) {
+	std::shared_ptr<VertexBuffer> VertexBuffer::Create(const void* verticies, uint32_t size) {
 		
 		switch (Renderer::GetAPI()) 
 		{

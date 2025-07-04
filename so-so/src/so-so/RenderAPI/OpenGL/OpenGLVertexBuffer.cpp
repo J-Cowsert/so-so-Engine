@@ -12,7 +12,7 @@ namespace soso {
 		glNamedBufferData(m_RendererID, size, nullptr, GL_DYNAMIC_DRAW);
 	}
 
-	OpenGLVertexBuffer::OpenGLVertexBuffer(void* indicies, uint32_t size) 
+	OpenGLVertexBuffer::OpenGLVertexBuffer(const void* indicies, uint32_t size) 
 		: m_Size(size)
 	{
 		glCreateBuffers(1, &m_RendererID);

@@ -8,7 +8,7 @@ namespace soso {
 	public:
 
 		OpenGLVertexBuffer(uint32_t size);
-		OpenGLVertexBuffer(void* indicies, uint32_t size);
+		OpenGLVertexBuffer(const void* indicies, uint32_t size);
 		virtual ~OpenGLVertexBuffer();
 
 		OpenGLVertexBuffer(const OpenGLVertexBuffer& other) = delete;
