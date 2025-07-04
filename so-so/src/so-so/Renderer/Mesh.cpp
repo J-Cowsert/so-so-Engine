@@ -1,7 +1,10 @@
 #include "sspch.h"
 #include "Mesh.h"
-#include "so-so/Renderer/Renderer.h"
+#include "Renderer.h"
+#include "ShaderLibrary.h"
 #include "so-so/Resource/TextureImporter.h"
+
+#include "so-so/Resource/ResourceManager.h"
 
 #include <assimp/scene.h>
 #include <assimp/postprocess.h>
@@ -64,8 +67,6 @@ namespace soso {
 
 		MESH_DEBUG("Loading Mesh: {0}", filepath);
 
-		m_DefaultShader = Renderer::GetShaderLibrary()->Get("PBR");
-
 		Assimp::Importer importer;
 		const aiScene* scene = importer.ReadFile(filepath.generic_string(), s_MeshImportFlags);
 
@@ -79,10 +80,16 @@ namespace soso {
 
 		m_Submeshes.reserve(scene->mNumMeshes);
 
+		std::vector<Vertex> m_Vertices;
+		std::vector<Index> m_Indices;
+
 		// Meshes
 		for (size_t i = 0; i < scene->mNumMeshes; i++) {
 
 			aiMesh* mesh = scene->mMeshes[i];
+
+			SS_CORE_ASSERT(mesh->HasPositions(), "Meshes require positions.");
+			SS_CORE_ASSERT(mesh->HasNormals(), "Meshes require normals.");
 
 			Submesh& submesh = m_Submeshes.emplace_back();
 			submesh.BaseVertex = vertexCount;
@@ -95,15 +102,22 @@ namespace soso {
 			vertexCount += submesh.VertexCount;
 			indexCount += submesh.IndexCount;
 
-			SS_CORE_ASSERT(mesh->HasPositions(), "Meshes require positions.");
-			SS_CORE_ASSERT(mesh->HasNormals(), "Meshes require normals.");
+			AABB& aabb = submesh.BoundingBox;
+			aabb.Min = glm::vec3(FLT_MAX);
+			aabb.Max = glm::vec3(-FLT_MAX);
 
 			// Vertices
 			for (size_t j = 0; j < mesh->mNumVertices; j++) {
 
+				glm::vec3 pos = { mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z };
+
+				aabb.Min = glm::min(aabb.Min, pos);
+				aabb.Max = glm::max(aabb.Max, pos);
+
 				Vertex vertex;
-				vertex.Position = { mesh->mVertices[j].x, mesh->mVertices[j].y, mesh->mVertices[j].z };
+				vertex.Position = pos;
 				vertex.Normal = { mesh->mNormals[j].x, mesh->mNormals[j].y, mesh->mNormals[j].z };
+
 
 				if (mesh->HasTangentsAndBitangents()) {
 					vertex.Tangent = { mesh->mTangents[j].x, mesh->mTangents[j].y, mesh->mTangents[j].z };
@@ -111,7 +125,7 @@ namespace soso {
 				}
 
 				if (mesh->HasTextureCoords(0))
-					vertex.TexCoord = { mesh->mTextureCoords[0][j].x, 1 - mesh->mTextureCoords[0][j].y };
+					vertex.TexCoord = { mesh->mTextureCoords[0][j].x, 1 - mesh->mTextureCoords[0][j].y }; // flip y-axis
 
 				m_Vertices.push_back(vertex);
 			}
@@ -128,6 +142,18 @@ namespace soso {
 
 		TraverseNodes(scene->mRootNode);
 
+		m_BoundingBox.Min = glm::vec3(FLT_MAX);
+		m_BoundingBox.Max = glm::vec3(-FLT_MAX);
+		
+		for (const auto& submesh : m_Submeshes) {
+
+			// Transformed AABB bounds
+			glm::vec3 min = glm::vec3(submesh.Transform * glm::vec4(submesh.BoundingBox.Min, 1.0f));
+			glm::vec3 max = glm::vec3(submesh.Transform * glm::vec4(submesh.BoundingBox.Max, 1.0f));
+
+			m_BoundingBox.Min = glm::min(m_BoundingBox.Min, min);
+			m_BoundingBox.Max = glm::max(m_BoundingBox.Max, max);
+		}
 
 		// Materials
 		if (scene->HasMaterials()) {
@@ -145,7 +171,7 @@ namespace soso {
 				aiMaterial->Get(AI_MATKEY_NAME, name);
 				auto aiMaterialName = aiMaterial->GetName();
 
-				auto mat = Material::Create(m_DefaultShader, aiMaterialName.data);
+				auto mat = Material::Create(Renderer::GetShaderLibrary()->Get("PBR"), "Material", aiMaterialName.data);
 				m_Materials[i] = mat;
 
 				// Base Color
@@ -172,6 +198,7 @@ namespace soso {
 				
 
 				// ========= Texture Maps ==========
+
 				aiString aiTexPath;
 
 				// Helper lambda to load a 2D texture from either embedded or external file
@@ -190,6 +217,7 @@ namespace soso {
 							config.Width = aiTexture->mWidth;
 							config.Height = aiTexture->mHeight;
 
+							SS_CORE_ASSERT(false, "Loading from memory doesn't seem to work. Investigate...")
 							texture = Texture2D::Create(config, ByteBuffer(aiTexture->pcData, 1));
 
 							MESH_DEBUG("Loaded Embedded Texture Map, Type: {0}", aiTextureTypeToString(aiTexType));
@@ -198,18 +226,21 @@ namespace soso {
 
 							return true;
 						}
-						else {
+						else { // when would we need the same texture with a different TextureConfig?
 
-							std::filesystem::path path = filepath;
-							auto parentPath = path.parent_path();
-							auto texturePath = parentPath /= std::string(aiTexPath.data);
+							auto texturePath = filepath.parent_path() /= std::string(aiTexPath.data);
 
-							TextureConfig config;
-							config.Format = imageFormat;
+							texture = static_pointer_cast<Texture2D>(ResourceManager::GetResourceFromFilepath(texturePath)); // TODO: TEMP
 
-							texture = Texture2D::Create(config, texturePath);
+							if (!texture) {
 
-							MESH_DEBUG("Loaded Texture Map From File, Type: {0}, Path: {1}", aiTextureTypeToString(aiTexType), texturePath);
+								TextureConfig config;
+								config.Format = imageFormat;
+
+								texture = ResourceManager::CreateResourceFromFile<Texture2D>(config, texturePath);
+								MESH_DEBUG("Loaded Texture Map From File, Type: {0}, Path: {1}", aiTextureTypeToString(aiTexType), texturePath);
+							}
+
 
 							mat->Set(uniformName, texture);
 
@@ -221,19 +252,10 @@ namespace soso {
 				};
 
 				bool result;
-
-				// Base Color Texture
-				result = loadTextureMap(aiTextureType_BASE_COLOR, "u_BaseColorTexture", ImageFormat::SRGBA);
-
-				// Roughness Texture
-				result = loadTextureMap(aiTextureType_DIFFUSE_ROUGHNESS, "u_RoughnessTexture");
-
-				// Metalness Texture
-				result = loadTextureMap(aiTextureType_METALNESS, "u_MetalnessTexture");
-
-				// Normal Texture
-				// Some assets use aiTextureType_NORMALS and others aiTextureType_HEIGHT for normals
-				result = loadTextureMap(aiTextureType_NORMALS, "u_NormalTexture");
+				result = loadTextureMap(aiTextureType_BASE_COLOR, "u_BaseColorTexture", ImageFormat::SRGBA); // Base Color Texture
+				result = loadTextureMap(aiTextureType_DIFFUSE_ROUGHNESS, "u_RoughnessTexture");              // Roughness Texture
+				result = loadTextureMap(aiTextureType_METALNESS, "u_MetalnessTexture");                      // Metalness Texture
+				result = loadTextureMap(aiTextureType_NORMALS, "u_NormalTexture");                           // Normal Texture
 
 				if (result) 
 					mat->Set("u_Material.HasNormalMap", true);
@@ -254,16 +276,13 @@ namespace soso {
 
 		m_VertexBuffer = VertexBuffer::Create(m_Vertices.data(), static_cast<uint32_t>(m_Vertices.size() * sizeof(Vertex)));
 		m_VertexBuffer->SetLayout(vertexLayout);
-
 		m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), static_cast<uint32_t>(m_Indices.size() * sizeof(Index)));
-
 		m_VertexArray->AddVertexBuffer(m_VertexBuffer);
 		m_VertexArray->SetIndexBuffer(m_IndexBuffer);
 	}
 
-	Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<Index> indices, const glm::mat4& transform) 
-		: m_Vertices(vertices), m_Indices(indices)
-	{
+	Mesh::Mesh(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const glm::mat4& transform) {
+
 		Submesh& submesh = m_Submeshes.emplace_back();
 		submesh.BaseVertex = 0;
 		submesh.BaseIndex = 0;
@@ -281,13 +300,19 @@ namespace soso {
 				{ ShaderDataType::Float2, "a_TexCoord" },
 		};
 
-		m_VertexBuffer = VertexBuffer::Create(m_Vertices.data(), static_cast<uint32_t>(m_Vertices.size() * sizeof(Vertex)));
+		m_VertexBuffer = VertexBuffer::Create(vertices.data(), static_cast<uint32_t>(vertices.size() * sizeof(Vertex)));
 		m_VertexBuffer->SetLayout(vertexLayout);
-		m_IndexBuffer = IndexBuffer::Create(m_Indices.data(), static_cast<uint32_t>(m_Indices.size() * sizeof(Index)));
+		m_IndexBuffer = IndexBuffer::Create(indices.data(), static_cast<uint32_t>(indices.size() * sizeof(Index)));
 		m_VertexArray->AddVertexBuffer(m_VertexBuffer);
 		m_VertexArray->SetIndexBuffer(m_IndexBuffer);
 
-		m_DefaultShader = Renderer::GetShaderLibrary()->Get("PBR");
+		m_BoundingBox.Min = glm::vec3(FLT_MAX);
+		m_BoundingBox.Max = glm::vec3(-FLT_MAX);
+		for (const auto& vertex : vertices) {
+
+			m_BoundingBox.Min = glm::min(m_BoundingBox.Min, vertex.Position);
+			m_BoundingBox.Max = glm::max(m_BoundingBox.Max, vertex.Position);
+		}
 	}
 
 	Mesh::~Mesh() {}
@@ -313,6 +338,7 @@ namespace soso {
 		}
 	}
 
+#if 0
 	void Mesh::DumpBufferInfo() {
 
 		std::cout << "\n";
@@ -334,7 +360,6 @@ namespace soso {
 		}
 		SS_CORE_TRACE("UV range: U [{}, {}], V [{}, {}]", minU, maxU, minV, maxV);
 
-#if 0
 		uint32_t idx = 0;
 		for (Submesh& submesh : m_Submeshes) {
 
@@ -354,9 +379,9 @@ namespace soso {
 			SS_CORE_TRACE("Tangent: {0}, {1}, {2}", vertex.Tangent.x, vertex.Tangent.y, vertex.Tangent.z);
 			SS_CORE_TRACE("TexCoord: {0}, {1}", vertex.TexCoord.x, vertex.TexCoord.y);
 		}
-#endif
 		SS_CORE_TRACE("================================================\n");
 	}
+#endif
 
 	std::shared_ptr<Mesh> Mesh::Create(const std::vector<Vertex>& vertices, const std::vector<Index>& indices, const glm::mat4& transform) {
 

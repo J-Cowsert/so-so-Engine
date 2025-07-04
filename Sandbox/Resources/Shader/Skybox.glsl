@@ -3,9 +3,11 @@
 
 layout(location = 0) in vec3 a_Position;
 
-layout(std140, binding = 0) uniform Camera {
+layout(std140, binding = 0) uniform Camera 
+{
     mat4 u_ViewProjection;
     mat4 u_RotationOnlyViewProjection;
+    vec4 u_CameraPos;
 };
 
 layout(location = 0) out VertexData {

@@ -12,7 +12,8 @@ layout(std140, binding = 4) uniform ShadowLightView {
     mat4 u_LightViewProjection;
 };
 
-layout(std140, binding = 1) uniform Transform {
+layout(std140, binding = 1) uniform Transform 
+{
     mat4 u_Transform;
 };
 
@@ -24,6 +25,4 @@ void main() {
 #stage fragment
 #version 450 core
 
-void main() {
-
-}
+void main() {}

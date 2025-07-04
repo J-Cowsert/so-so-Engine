@@ -1,8 +1,9 @@
 #pragma once
 
+#include "so-so/Core/Core.h"
+
 #include "VertexBuffer.h"
 #include "IndexBuffer.h"
-#include <memory>
 
 namespace soso {
 

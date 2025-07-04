@@ -2,8 +2,8 @@
 #include "OpenGLContext.h"
 
 #include <GLFW/glfw3.h>
-#include <glad/glad.h>
-#include <GL/GL.h>
+#include <Glad/glad.h>
+//#include <GL/GL.h>
 
 soso::OpenGLContext::OpenGLContext(GLFWwindow* contextWindow)
 	: m_ContextWindow(contextWindow) {

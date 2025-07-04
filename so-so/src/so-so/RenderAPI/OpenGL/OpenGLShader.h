@@ -7,8 +7,6 @@
 #include <functional>
 #include <expected>
 
-#include "glad/glad.h"
-
 namespace soso {
 
 	class UniformBuffer;
@@ -16,8 +14,8 @@ namespace soso {
 	class OpenGLShader : public Shader {
 	public:
 		struct ReflectionData {
-			std::unordered_map<std::string, ShaderUniformBufferInfo> ShaderUniformBufferInfo;   // Name, ShaderUniformBufferInfo
-			std::unordered_map<std::string, ShaderResourceInfo> ShaderResourceInfo; // Name, ShaderResourceInfo
+			std::unordered_map<std::string, ShaderUniformBufferInfo> ShaderUniformBuffers;   // Name, ShaderUniformBufferInfo
+			std::unordered_map<std::string, ShaderResourceInfo> ShaderResources;             // Name, ShaderResourceInfo
 		};
 		
 	public:
@@ -30,11 +28,10 @@ namespace soso {
 		void Reload() override;
 
 		const std::string& GetName() const override { return m_Name; }
-		const std::unordered_map<std::string, ShaderUniformBufferInfo>& GetShaderBuffers() const override { return m_ReflectionData.ShaderUniformBufferInfo; }
-		const std::unordered_map<std::string, ShaderResourceInfo>& GetResources() const override { return m_ReflectionData.ShaderResourceInfo; }
+		const std::unordered_map<std::string, ShaderUniformBufferInfo>& GetShaderBuffers() const override { return m_ReflectionData.ShaderUniformBuffers; }
+		const std::unordered_map<std::string, ShaderResourceInfo>& GetResources() const override { return m_ReflectionData.ShaderResources; }
 		std::unordered_map<ShaderStage, std::string> GetSources() const override { return m_ShaderStageSources; }
 		const std::string& GetFilepath() const override { return m_Filepath; }
-
 
 		std::shared_ptr<UniformBuffer> GetUniformBuffer(uint32_t bindingPoint) const override;
 
@@ -74,17 +71,5 @@ namespace soso {
 		std::unordered_map<ShaderStage, std::vector<uint32_t>> m_OpenGLSpirv;
 
 		ReflectionData m_ReflectionData;
- 
-		// We want to store all of the uniform buffers for every shader in one location. 
-		// If only the binding point were used as the key you would run in to conflicts, as seperate shaders might have UBOs using
-		// the same binding.
-		// If both binding point and RendererID were used, you might run into problems when the shader is recompiled and the rendererID changes. 
-
-		// These will need to be reloaded when a shader is reloaded or recompiled as the Uniform buffer might change.
-		// If a shader instance is destroyed, it's pointer will become invalid. This should be okay since the only way you can get a shader's uniform buffer is using that shader.
-		// 
-		// Currently only stores Material related uniform buffer objects
-
-		inline static std::map<std::pair<const OpenGLShader*, uint32_t>, std::shared_ptr<UniformBuffer>> s_UniformBuffers; // key  = pair<OpenGLShader*, bindingPoint>
 	};
 }

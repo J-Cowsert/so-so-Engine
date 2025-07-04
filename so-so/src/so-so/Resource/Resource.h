@@ -18,18 +18,18 @@ namespace soso {
 	enum class ResourceType : uint32_t {
 
 		None = 0,
-		Shader,
-		Texture,
-		Mesh,
-		Material
+		Texture2D,
+		TextureCube
 	};
 
 
 	using ResourceID = UID;
 		
 	class Resource {
+		friend class ResourceManager;
+
 	public:
-		ResourceID ID = 0;
+		ResourceID ResourceID = 0;
 		uint32_t Flags = (uint32_t)ResourceFlag::None;
 
 		virtual ~Resource() {}
@@ -38,7 +38,7 @@ namespace soso {
 		virtual ResourceType GetResourceType() const { return ResourceType::None; }
 
 		virtual bool operator==(const Resource& other) const {
-			return ID == other.ID;
+			return ResourceID == other.ResourceID;
 		}
 
 		virtual bool operator!=(const Resource& other) const {

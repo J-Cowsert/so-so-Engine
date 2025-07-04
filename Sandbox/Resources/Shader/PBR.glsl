@@ -40,15 +40,42 @@ layout(location = 0) out VertexOutput Output;
 void main()
 {   
     Output.WorldPosition = vec3(u_Transform * vec4(a_Position, 1.0)); 
-    Output.TexCoord = a_TexCoord;
+    Output.TexCoord = vec2(a_TexCoord.x, a_TexCoord.y);
     Output.Normal = mat3(transpose(inverse(u_Transform))) * a_Normal;
-    Output.TangentBasis = mat3(u_Transform) * mat3(a_Tangent, a_Bitangent, a_Normal);
+
+    // Gram-Schmidt technique
+    vec3 T = mat3(u_Transform) * a_Tangent;
+    vec3 B = mat3(u_Transform) * a_Bitangent;
+    vec3 N = Output.Normal;
+    
+    T = normalize(T);
+    N = normalize(N);
+    
+    // Re-orthogonalize T to N
+    T = normalize(T - N * dot(N, T));
+    
+    B = cross(N, T);
+    if (dot(cross(T, B), N) < 0.0) 
+        B = -B;
+    
+    Output.TangentBasis = mat3(T, B, N);
+
+
+
+
+
+    //Output.TangentBasis = mat3(u_Transform) * mat3(a_Tangent, a_Bitangent, a_Normal);
+
+
+
     Output.CameraPos = vec3(u_CameraPos);
     Output.FragLightPosition = u_LightViewProjection * (u_Transform * vec4(a_Position, 1.0));
 
     gl_Position = u_ViewProjection * u_Transform * vec4(a_Position, 1.0);
 }
 
+
+//===============================================================================================
 
 
 #stage fragment
@@ -76,9 +103,8 @@ layout(location = 0) in VertexOutput Input;
 layout(std140, binding = 2) uniform DirLight
 {
     vec3 Direction;
-    vec3 Ambient;
-    vec3 Diffuse;
-    vec3 Specular;
+    vec3 Intensity;
+    vec3 AmbiantFactor;
 
 } u_DirLight;
 
@@ -100,6 +126,7 @@ layout(binding=3) uniform sampler2D u_RoughnessTexture;
 layout(binding=4) uniform samplerCube u_EnvRadianceTexture;
 layout(binding=5) uniform samplerCube u_EnvIrradianceTexture;
 layout(binding=6) uniform sampler2D u_BRDF_LUT;
+
 layout(binding=7) uniform sampler2D u_ShadowMap;
 
 
@@ -122,7 +149,7 @@ float SpecularG_SchlickGGX(float NdotL, float NdotV, float roughness)
     return Gl * Gv;
 }
 
-vec3 SpecularF_FresnelSchlick(vec3 F0, float cosTheta)
+vec3 FresnelSchlick(vec3 F0, float cosTheta)
 {
     return F0 + (vec3(1.) - F0) * pow(1. - cosTheta, 5.);
 }
@@ -142,34 +169,35 @@ void main()
 	vec2 t_TileScale = vec2(1.);
 
 	vec3 baseColor = texture(u_BaseColorTexture, Input.TexCoord * t_TileScale).rgb * vec3(ToLinear(vec4(u_Material.BaseColor, 1.)));
+	
+	
+
     float roughness = texture(u_RoughnessTexture, Input.TexCoord * t_TileScale).g * u_Material.Roughness;
 	float metalness = texture(u_MetalnessTexture, Input.TexCoord * t_TileScale).b * u_Material.Metallic;	
 
 	vec3  N  = normalize(Input.Normal);
     if (u_Material.HasNormalMap) 
     {
-        N = normalize(2. * texture(u_NormalTexture, Input.TexCoord).rgb - 1.);
+        N = normalize(texture(u_NormalTexture, Input.TexCoord).rgb * 2. - 1.);
         N = normalize(Input.TangentBasis * N);
     }
 
 	vec3 Lo = normalize(Input.CameraPos - Input.WorldPosition);
-	
-
     vec3 F0 = mix(Fdielectric, baseColor, metalness);
 
+    float NdotV = max(dot(N, Lo), 0.1);
 
 	vec3 directLighting = vec3(0);
 	for (int i = 0; i < 1; i++) 
 	{
-        vec3 Li = -u_DirLight.Direction; 
+        vec3 Li = normalize(-u_DirLight.Direction); 
         vec3 Lh = normalize(Lo + Li);
 		
 		float NdotL = max(dot(N, Li), 0.);
-        float NdotV = max(dot(N, Lo), 0.);
         float NdotH = max(dot(N, Lh), 0.);
 
         float D = SpecularD_GGX(NdotH, roughness);
-        vec3 F = SpecularF_FresnelSchlick(F0, NdotH);
+        vec3 F = FresnelSchlick(F0, NdotH);
         float G = SpecularG_SchlickGGX(NdotL, NdotV, roughness);
 
         vec3 specularBRDF = (D * F * G) / max(4 * NdotL * NdotV, Epsilon);
@@ -177,12 +205,43 @@ void main()
         vec3 diffuseReflectance = mix(vec3(1.) - F, vec3(0), metalness);
         vec3 diffuseBRDF = diffuseReflectance * baseColor;
 
-        vec3 Lradiance   = u_DirLight.Ambient;   
+        vec3 Lradiance   = u_DirLight.Intensity;   
         directLighting += (diffuseBRDF + specularBRDF) * Lradiance * NdotL;
 	}
+
+
+    vec3 ambiantLighting;
+    {
+        vec3 irradiance = texture(u_EnvIrradianceTexture, N).rgb;
+
+        vec3 F = FresnelSchlick(F0, NdotV);
+
+        vec3 kd = mix(vec3(1.0) - F, vec3(0.0), metalness);
+
+        vec3 diffuseIBL = kd * baseColor * irradiance;
+
+        ambiantLighting = diffuseIBL;
+    }
+
 	
+    // Shadows: (1=lit, 0=shadowed)
+    float inShadow = 1.;
+    vec3 lightCoord = Input.FragLightPosition.xyz / Input.FragLightPosition.w; // Convert to Normalized Device Coordinates [-1, 1]
+    
+    if (lightCoord.z <= 1.) 
+    {
+        lightCoord = lightCoord * 0.5 + 0.5; // Remap to [0,1]
+        float closestDepth = texture(u_ShadowMap, lightCoord.xy).r;
+        float currDepth = lightCoord.z;
+        vec3 Li = normalize(-u_DirLight.Direction);
+        float bias = max(0.005 * (1.0 - dot(N, Li)), 0.0005);
+        if (currDepth - bias > closestDepth) 
+        {
+            inShadow = 0.;
+        }
+    }
 
-    vec3 ambiant = baseColor * vec3(u_DirLight.Diffuse.x);
+	vec3 col = ((directLighting * inShadow) + (ambiantLighting * u_DirLight.AmbiantFactor));
 
-    FragmentColor = vec4(directLighting + ambiant, 1.);
+    FragmentColor = vec4(col, 1.0);
 }

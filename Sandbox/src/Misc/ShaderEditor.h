@@ -1,9 +1,8 @@
 #pragma once
 
-#include "so-so/Renderer/Shader.h"
+#include "so-so/Renderer/ShaderLibrary.h"
 
 #include <vector>
-#include "imgui.h"
 
 class ShaderEditor {
 public:

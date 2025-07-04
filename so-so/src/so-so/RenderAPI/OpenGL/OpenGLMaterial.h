@@ -7,7 +7,8 @@ namespace soso {
 	
 	class OpenGLMaterial : public Material {
 	public:
-		OpenGLMaterial(const std::shared_ptr<Shader>& shader, const std::string& name);
+		// TODO: Target UB string is a temporary hot-fix to generalize Material for any shader buffer.
+		OpenGLMaterial(const std::shared_ptr<Shader>& shader, const std::string& targetUB, const std::string& name);
 		OpenGLMaterial(std::shared_ptr<Material> material, const std::string& name);
 		virtual ~OpenGLMaterial() override;
 	
@@ -38,17 +39,19 @@ namespace soso {
 			const auto& info = FindUniformInfo(name);
 
 			SS_CORE_ASSERT(info, "Could not find info");
-			
+
 			if (!info) {
 				SS_CORE_WARN("Name: {0}", name);
 				return;
 			}
+
 			SS_CORE_ASSERT(sizeof(T) == info->GetSize(), "Size mismatch");
+			SS_CORE_ASSERT(m_UniformByteBuffer.Size != 0, "");
 
 			ByteBuffer& buffer = m_UniformByteBuffer;
 			buffer.Write(&value, info->GetSize(), info->GetOffset());
 
-			m_IsDirty = true; // TODO: The cached UB should only need to be reset if the shader is reloaded.
+			m_IsDirty = true;
 		}
 
 		// TODO: Getters
@@ -66,9 +69,12 @@ namespace soso {
 
 		uint32_t m_MaterialFlags = (uint32_t)MaterialFlag::None;
 		
-		std::map<uint32_t, std::shared_ptr<Texture>> m_Texture2Ds; // <bindingPoint, texture2d>
+		std::map<uint32_t, std::shared_ptr<Texture2D>> m_Texture2Ds; // <bindingPoint, texture2D>
+		std::map<uint32_t, std::shared_ptr<TextureCube>> m_TextureCubes; // <bindingPoint, textureCube>
 
 		ByteBuffer m_UniformByteBuffer;
+
+		std::string m_TargetUniformBufferName;
 		std::shared_ptr<UniformBuffer> m_UniformBuffer; // Cached
 		bool m_IsDirty = false;
 	};

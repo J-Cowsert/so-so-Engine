@@ -1,5 +1,6 @@
 ﻿#include "Terrain.h"
 
+#include "so-so/Renderer/Mesh.h"
 #include "so-so/Resource/TextureImporter.h"
 
 namespace Utils {
@@ -78,8 +79,8 @@ Terrain::Terrain(const std::filesystem::path& heightMapPath, float size, uint32_
     //
 
     // Generate vertices (positions, zeroed normals/tangents/bitangents, UVs)
-    for (int i = 0; i <= resolution; i++) {
-        for (int j = 0; j <= resolution; j++) {
+    for (uint32_t i = 0; i <= resolution; i++) {
+        for (uint32_t j = 0; j <= resolution; j++) {
             float u = static_cast<float>(i) * invRes;
             float v = static_cast<float>(j) * invRes;
 
@@ -103,8 +104,8 @@ Terrain::Terrain(const std::filesystem::path& heightMapPath, float size, uint32_
 
     // Build index buffer
     int rowLen = resolution + 1;
-    for (int i = 0; i < resolution; i++) {
-        for (int j = 0; j < resolution; j++) {
+    for (uint32_t i = 0; i < resolution; i++) {
+        for (uint32_t j = 0; j < resolution; j++) {
             uint32_t v1 = i * rowLen + j;
             uint32_t v2 = (i + 1) * rowLen + j;
             uint32_t v3 = (i + 1) * rowLen + (j + 1);
@@ -132,9 +133,9 @@ Terrain::Terrain(const std::filesystem::path& heightMapPath, float size, uint32_
             return Utils::SampleHeightBilinear(heights, imgW, imgH, u, v) * heightScale;
         };
 
-    for (int i = 0; i <= resolution; ++i)
+    for (uint32_t i = 0; i <= resolution; ++i)
     {
-        for (int j = 0; j <= resolution; ++j)
+        for (uint32_t j = 0; j <= resolution; ++j)
         {
             float gx = 0.0f, gz = 0.0f;
             for (int di = -1; di <= 1; ++di)

@@ -4,7 +4,8 @@
 layout(location = 0) in vec3 a_Position;
 layout(location = 1) in vec2 a_TexCoord;
 
-layout(std140, binding = 0) uniform Camera {
+layout(std140, binding = 0) uniform Camera 
+{
     mat4 u_ViewProjection;
     mat4 u_RotationOnlyViewProjection;
 	vec4 u_CameraPos;
@@ -33,7 +34,8 @@ layout(location = 0) in VertexData {
 layout(binding = 0) uniform sampler2D u_Texture;
 
 void main() {
-	
-	float d = texture(u_Texture, v_TexCoords).r;
-    FragmentColor = vec4(vec3(d), 1.0);
+
+	//vec2 uv = vec2(v_TexCoords.x, v_TexCoords.y);
+	//vec3 d = texture(u_Texture, uv).rgb;
+    FragmentColor = texture(u_Texture, v_TexCoords);
 }

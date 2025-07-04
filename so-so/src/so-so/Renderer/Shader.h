@@ -12,8 +12,9 @@ namespace soso {
 	enum class ShaderStage {
 		None = 0,
 		Vertex,
-		Geometry, // TODO
-		Fragment
+		Geometry,
+		Fragment,
+		Compute
 	};
 
 	enum class ShaderUniformType {
@@ -40,8 +41,6 @@ namespace soso {
 		uint32_t m_Size = 0;
 		uint32_t m_Offset = 0;
 	};
-
-	// TODO: Move some of this to RenderAPI backend as it is api specific. Vulkan for example needs more data stored like set
 
 	struct ShaderUniformBufferInfo { 
 

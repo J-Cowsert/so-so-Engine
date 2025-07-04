@@ -3,19 +3,24 @@
 #include "sspch.h"
 #include "OpenGLShader.h"
 
-#include "so-so/Core/Timer.h"
 #include "so-so/Renderer/UniformBuffer.h"
+#include "so-so/Core/Profiler.h"
 
 #include <glm/gtc/type_ptr.hpp>
 #include <filesystem>
 #include <format>
+
 
 #include <shaderc/shaderc.hpp>
 
 #include <spirv_cross.hpp>
 #include <spirv_glsl.hpp>
 
-#define SHADER_DEBUG_LOG false // Toggle for debug logging
+#include <fstream>
+
+#include <Glad/glad.h>
+
+#define SHADER_DEBUG_LOG true // Toggle for debug logging
 
 #if SHADER_DEBUG_LOG
 	#define SHADER_DEBUG(...) SS_CORE_TRACE(__VA_ARGS__)
@@ -27,14 +32,16 @@ namespace soso {
 
 	namespace Utils {
 
-		//TODO: Clean up this mess
-
 		static GLenum StringToGLShaderStage(const std::string& type) {
 
 			if (type == "vertex")
 				return GL_VERTEX_SHADER;
 			if (type == "fragment" || type == "pixel")
 				return GL_FRAGMENT_SHADER;
+			if (type == "geometry")
+				return GL_GEOMETRY_SHADER;
+			if (type == "compute")
+				return GL_COMPUTE_SHADER;
 
 			SS_CORE_ASSERT(false, "Unknown shader type");
 			return 0;
@@ -46,6 +53,10 @@ namespace soso {
 				return ShaderStage::Vertex;
 			if (type == "fragment" || type == "pixel")
 				return ShaderStage::Fragment;
+			if (type == "geometry")
+				return ShaderStage::Geometry;
+			if (type == "compute")
+				return ShaderStage::Compute;
 
 			SS_CORE_ASSERT(false, "Unknown shader type");
 			return ShaderStage::None;
@@ -56,6 +67,8 @@ namespace soso {
 			switch (type) {
 				case ShaderStage::Vertex:   return GL_VERTEX_SHADER;
 				case ShaderStage::Fragment: return GL_FRAGMENT_SHADER;
+				case ShaderStage::Geometry: return GL_GEOMETRY_SHADER;
+				case ShaderStage::Compute:  return GL_COMPUTE_SHADER;
 			}
 
 			SS_CORE_ASSERT(false, "Unknown shader type");
@@ -65,49 +78,31 @@ namespace soso {
 		static const char* SosoShaderStageToString(const ShaderStage type) {
 
 			switch (type) {
-			case ShaderStage::Vertex:   return "Vertex";
-			case ShaderStage::Fragment: return "Fragment";
+				case ShaderStage::Vertex:   return "Vertex";
+				case ShaderStage::Fragment: return "Fragment";
+				case ShaderStage::Geometry: return "Geometry";
+				case ShaderStage::Compute:  return "Compute";
 			}
 
 			SS_CORE_ASSERT(false, "Unknown shader type");
 			return nullptr;
 		}
 
-		static ShaderStage GLShaderStageToSosoShaderStage(GLenum type) {
-
-			switch (type) {
-				case GL_VERTEX_SHADER:   return ShaderStage::Vertex;
-				case GL_FRAGMENT_SHADER: return ShaderStage::Fragment;
-			}
-			SS_CORE_ASSERT(false, "");
-			return ShaderStage::None;
-		}
-
-		static const char* GLShaderStageToString(GLenum stage) {
-
-			switch (stage) {
-				case GL_VERTEX_SHADER:   return "GL_VERTEX_SHADER";
-				case GL_FRAGMENT_SHADER: return "GL_FRAGMENT_SHADER";
-			}
-			SS_CORE_ASSERT(false, "");
-			return nullptr;
-		}
-
 		static const char* GLTypeToString(GLenum type) {
 
 			switch (type) {
-			case GL_FLOAT: return "float";
-			case GL_FLOAT_VEC2: return "vec2";
-			case GL_FLOAT_VEC3: return "vec3";
-			case GL_FLOAT_VEC4: return "vec4";
-			case GL_INT: return "int";
-			case GL_UNSIGNED_INT: return "uint";
-			case GL_BOOL: return "bool";
-			case GL_FLOAT_MAT2: return "mat2";
-			case GL_FLOAT_MAT3: return "mat3";
-			case GL_FLOAT_MAT4: return "mat4";
-			case GL_SAMPLER_2D: return "sampler2D";
-			case GL_SAMPLER_CUBE: return "samplerCube";
+				case GL_FLOAT: return "float";
+				case GL_FLOAT_VEC2: return "vec2";
+				case GL_FLOAT_VEC3: return "vec3";
+				case GL_FLOAT_VEC4: return "vec4";
+				case GL_INT: return "int";
+				case GL_UNSIGNED_INT: return "uint";
+				case GL_BOOL: return "bool";
+				case GL_FLOAT_MAT2: return "mat2";
+				case GL_FLOAT_MAT3: return "mat3";
+				case GL_FLOAT_MAT4: return "mat4";
+				case GL_SAMPLER_2D: return "sampler2D";
+				case GL_SAMPLER_CUBE: return "samplerCube";
 			}
 			SS_CORE_ASSERT(false, "");
 			return nullptr;
@@ -116,14 +111,14 @@ namespace soso {
 		static uint32_t GLTypeSize(GLenum type) {
 
 			switch (type) {
-			case GL_BOOL:
-			case GL_INT:
-			case GL_FLOAT:      return 4;
-			case GL_FLOAT_VEC2: return 8;
-			case GL_FLOAT_VEC3: return 12;
-			case GL_FLOAT_VEC4: return 16;
-			case GL_FLOAT_MAT3: return 48; // std140 3 × vec4 (16‑byte rows)
-			case GL_FLOAT_MAT4: return 64; // 4 × vec4
+				case GL_BOOL:
+				case GL_INT:
+				case GL_FLOAT:      return 4;
+				case GL_FLOAT_VEC2: return 8;
+				case GL_FLOAT_VEC3: return 12;
+				case GL_FLOAT_VEC4: return 16;
+				case GL_FLOAT_MAT3: return 48;
+				case GL_FLOAT_MAT4: return 64;
 			}
 			SS_CORE_ASSERT(false, "");
 			return 0;
@@ -132,16 +127,16 @@ namespace soso {
 		static ShaderUniformType GLTypeToShaderUniformType(GLenum type) {
 
 			switch (type) {
-			case GL_BOOL:           return ShaderUniformType::Bool;
-			case GL_INT:
-			case GL_SAMPLER_2D:
-			case GL_SAMPLER_CUBE:   return ShaderUniformType::Int;   // samplers are set with glUniform1i
-			case GL_FLOAT:          return ShaderUniformType::Float;
-			case GL_FLOAT_VEC2:     return ShaderUniformType::Vec2;
-			case GL_FLOAT_VEC3:     return ShaderUniformType::Vec3;
-			case GL_FLOAT_VEC4:     return ShaderUniformType::Vec4;
-			case GL_FLOAT_MAT3:     return ShaderUniformType::Mat3;
-			case GL_FLOAT_MAT4:     return ShaderUniformType::Mat4;
+				case GL_BOOL:           return ShaderUniformType::Bool;
+				case GL_INT:
+				case GL_SAMPLER_2D:
+				case GL_SAMPLER_CUBE:   return ShaderUniformType::Int;
+				case GL_FLOAT:          return ShaderUniformType::Float;
+				case GL_FLOAT_VEC2:     return ShaderUniformType::Vec2;
+				case GL_FLOAT_VEC3:     return ShaderUniformType::Vec3;
+				case GL_FLOAT_VEC4:     return ShaderUniformType::Vec4;
+				case GL_FLOAT_MAT3:     return ShaderUniformType::Mat3;
+				case GL_FLOAT_MAT4:     return ShaderUniformType::Mat4;
 			}
 			SS_CORE_ASSERT(false, "");
 			return ShaderUniformType::None;
@@ -150,19 +145,19 @@ namespace soso {
 		static const char* ShaderUniformTypeToString(ShaderUniformType type) {
 
 			switch (type) {
-			case ShaderUniformType::None:  return "None";
-			case ShaderUniformType::Bool:  return "Bool";
-			case ShaderUniformType::Float: return "Float";
-			case ShaderUniformType::Int:   return "Int";
-			case ShaderUniformType::UInt:  return "UInt";
-			case ShaderUniformType::IVec2: return "IVec2";
-			case ShaderUniformType::IVec3: return "IVec3";
-			case ShaderUniformType::IVec4: return "IVec4";
-			case ShaderUniformType::Vec2:  return "Vec2";
-			case ShaderUniformType::Vec3:  return "Vec3";
-			case ShaderUniformType::Vec4:  return "Vec4";
-			case ShaderUniformType::Mat3:  return "Mat3";
-			case ShaderUniformType::Mat4:  return "Mat4";
+				case ShaderUniformType::None:  return "None";
+				case ShaderUniformType::Bool:  return "Bool";
+				case ShaderUniformType::Float: return "Float";
+				case ShaderUniformType::Int:   return "Int";
+				case ShaderUniformType::UInt:  return "UInt";
+				case ShaderUniformType::IVec2: return "IVec2";
+				case ShaderUniformType::IVec3: return "IVec3";
+				case ShaderUniformType::IVec4: return "IVec4";
+				case ShaderUniformType::Vec2:  return "Vec2";
+				case ShaderUniformType::Vec3:  return "Vec3";
+				case ShaderUniformType::Vec4:  return "Vec4";
+				case ShaderUniformType::Mat3:  return "Mat3";
+				case ShaderUniformType::Mat4:  return "Mat4";
 			}
 			SS_CORE_ASSERT(false, "");
 			return nullptr;
@@ -170,37 +165,55 @@ namespace soso {
 
 		static shaderc_shader_kind GLShaderStageToShaderC(GLenum stage) {
 			switch (stage) {
-			case GL_VERTEX_SHADER:   return shaderc_glsl_vertex_shader;
-			case GL_FRAGMENT_SHADER: return shaderc_glsl_fragment_shader;
+				case GL_VERTEX_SHADER:   return shaderc_glsl_vertex_shader;
+				case GL_FRAGMENT_SHADER: return shaderc_glsl_fragment_shader;
+				case GL_GEOMETRY_SHADER: return shaderc_glsl_geometry_shader;
+				case GL_COMPUTE_SHADER:  return shaderc_glsl_compute_shader;
 			}
 			SS_CORE_ASSERT(false, "");
 			return (shaderc_shader_kind)0;
 		}
 
-
-		static const char* GetCacheDirectory() {
-			
-			return "Resources/Cache/Shader/OpenGL";
-		}
-
 		static const char* GLShaderStageCachedFileExtension(ShaderStage source) {
 
 			switch (source) {
-			case ShaderStage::Vertex:    return ".cached.vert";
-			case ShaderStage::Fragment:  return ".cached.frag";
+				case ShaderStage::Vertex:    return ".cached.vert";
+				case ShaderStage::Fragment:  return ".cached.frag";
+				case ShaderStage::Geometry:  return ".cached.geom";
+				case ShaderStage::Compute:   return ".cached.comp";
 			}
 			SS_CORE_ASSERT(false, "");
 			return "";
 		}
 
-		static const char* GLShaderStageCachedVulkanFileExtension(ShaderStage stage) {
+		static ShaderUniformType SPIRTypeToShaderUniformType(spirv_cross::SPIRType type) {
 
-			switch (stage) {
-			case ShaderStage::Vertex:    return ".cached_vulkan.vert";
-			case ShaderStage::Fragment:  return ".cached_vulkan.frag";
+			switch (type.basetype) {
+				case spirv_cross::SPIRType::Boolean:  return ShaderUniformType::Bool;
+				case spirv_cross::SPIRType::Int:
+					if (type.vecsize == 1)            return ShaderUniformType::Int;
+					if (type.vecsize == 2)            return ShaderUniformType::IVec2;
+					if (type.vecsize == 3)            return ShaderUniformType::IVec3;
+					if (type.vecsize == 4)            return ShaderUniformType::IVec4;
+
+				case spirv_cross::SPIRType::UInt:     return ShaderUniformType::UInt;
+				case spirv_cross::SPIRType::Float:
+					if (type.columns == 3)            return ShaderUniformType::Mat3;
+					if (type.columns == 4)            return ShaderUniformType::Mat4;
+
+					if (type.vecsize == 1)            return ShaderUniformType::Float;
+					if (type.vecsize == 2)            return ShaderUniformType::Vec2;
+					if (type.vecsize == 3)            return ShaderUniformType::Vec3;
+					if (type.vecsize == 4)            return ShaderUniformType::Vec4;
+					break;
 			}
 			SS_CORE_ASSERT(false, "");
-			return "";
+			return ShaderUniformType::None;
+		}
+
+		static const char* GetCacheDirectory() {
+
+			return "Resources/Cache/Shader/OpenGL";
 		}
 
 		static void CreateCacheDirectoryIfNeeded() {
@@ -209,48 +222,37 @@ namespace soso {
 			if (!std::filesystem::exists(cacheDirectory))
 				std::filesystem::create_directories(cacheDirectory);
 		}
+	}
 
-		static ShaderUniformType SPIRTypeToShaderUniformType(spirv_cross::SPIRType type) {
 
-			switch (type.basetype) {
-			case spirv_cross::SPIRType::Boolean:  return ShaderUniformType::Bool;
-			case spirv_cross::SPIRType::Int:
-				if (type.vecsize == 1)            return ShaderUniformType::Int;
-				if (type.vecsize == 2)            return ShaderUniformType::IVec2;
-				if (type.vecsize == 3)            return ShaderUniformType::IVec3;
-				if (type.vecsize == 4)            return ShaderUniformType::IVec4;
+	namespace {
+		
+		// We want to store all of the uniform buffers for every shader in one location. 
+		// Why would we want to make this static
+		
+		// Consider making the key <const OpenGLShader*, std::string name> 
 
-			case spirv_cross::SPIRType::UInt:     return ShaderUniformType::UInt;
-			case spirv_cross::SPIRType::Float:
-				if (type.columns == 3)            return ShaderUniformType::Mat3;
-				if (type.columns == 4)            return ShaderUniformType::Mat4;
+		// Consider making the key only the binding point 
+		// Currently all binding points across all shaders don't need to be unique. This doesn't match OpenGL's global binding points.
 
-				if (type.vecsize == 1)            return ShaderUniformType::Float;
-				if (type.vecsize == 2)            return ShaderUniformType::Vec2;
-				if (type.vecsize == 3)            return ShaderUniformType::Vec3;
-				if (type.vecsize == 4)            return ShaderUniformType::Vec4;
-				break;
-			}
-			SS_CORE_ASSERT(false, "");
-			return ShaderUniformType::None;
-		}
+		static std::map<std::pair<const OpenGLShader*, uint32_t>, std::shared_ptr<UniformBuffer>> s_UniformBuffers;
 	}
 
 	OpenGLShader::OpenGLShader(const std::string& filepath) 
 		: m_Filepath(filepath) 
 	{
+		// Find name
 		auto lastSlash = filepath.find_last_of("/\\");
 		lastSlash = lastSlash == std::string::npos ? 0 : lastSlash + 1;
 		auto lastDot = filepath.rfind('.');
 		auto count = lastDot == std::string::npos ? filepath.size() - lastSlash : lastDot - lastSlash;
-
 		m_Name = filepath.substr(lastSlash, count);
 
 		Utils::CreateCacheDirectoryIfNeeded();
 
-		std::string source = ReadFile(filepath);
+		auto source = ReadFile(filepath);
 		auto sources = PreProcess(source);
-		
+
 		auto success = Compile(sources);
 
 		if (!success) {
@@ -298,12 +300,13 @@ namespace soso {
 			return;
 		}
 
+		// Track old so we dont lose its handle when upload to gpu is called
 		auto oldRendererID = m_RendererID;
-
 		UploadToGPU();
-		CreateUniformBufferObjects();
-		
 		glDeleteProgram(oldRendererID);
+		
+		// TODO: 
+		//CreateUniformBufferObjects();
 	}
 
 	std::string OpenGLShader::ReadFile(const std::string& filepath) {
@@ -361,14 +364,14 @@ namespace soso {
 
 	std::expected<void, std::string> OpenGLShader::Compile(std::unordered_map<ShaderStage, std::string> shaderSources, bool forceReload) {
 		
-		ScopedTimer timer("Shader::Compile()");
+		SS_PROFILE_FUNCTION();
 
 		SHADER_DEBUG("Compiling shader - {0}", m_Filepath);
 
 		shaderc::Compiler compiler;
 		shaderc::CompileOptions options;
 		options.SetTargetEnvironment(shaderc_target_env_opengl, shaderc_env_version_opengl_4_5);
-		options.SetOptimizationLevel(shaderc_optimization_level_zero);
+		options.SetOptimizationLevel(shaderc_optimization_level_performance);
 		options.SetGenerateDebugInfo();
 
 		//options.AddMacroDefinition
@@ -475,6 +478,7 @@ namespace soso {
 		m_RendererID = program;
 	}
 
+	// TODO: Add support for SSBOs
 	void OpenGLShader::Reflect(ShaderStage stage, const std::vector<uint32_t>& shaderData) {
 
 		spirv_cross::Compiler compiler(shaderData);
@@ -505,7 +509,7 @@ namespace soso {
 				SHADER_DEBUG("    Members = {0}", memberCount);
 
 				// Create ShaderBuffer and pass into reflection data. 
-				ShaderUniformBufferInfo& buffer = m_ReflectionData.ShaderUniformBufferInfo[blockName];
+				ShaderUniformBufferInfo& buffer = m_ReflectionData.ShaderUniformBuffers[blockName];
 				buffer.Name = blockName;
 				buffer.Size = bufferSize;
 				buffer.BindingPoint = binding;
@@ -544,13 +548,13 @@ namespace soso {
 
 			SHADER_DEBUG("Sampler `{}` binding {}", name, binding);
 
-			m_ReflectionData.ShaderResourceInfo[name] = ShaderResourceInfo{ name, binding };
+			m_ReflectionData.ShaderResources[name] = ShaderResourceInfo{ name, binding };
 		}
 
-
+#if SHADER_DEBUG_LOG
 		// Debug Print out all reflection data from containers		
 		SHADER_DEBUG("------Reflection ShaderBuffers debug info------");
-		for (const auto& [name, shaderBuffer] : m_ReflectionData.ShaderUniformBufferInfo) {
+		for (const auto& [name, shaderBuffer] : m_ReflectionData.ShaderUniformBuffers) {
 
 			SHADER_DEBUG("Uniform Buffer - Name: {0}, Size: {1}, Binding: {2}", shaderBuffer.Name, shaderBuffer.Size, shaderBuffer.BindingPoint);
 
@@ -565,34 +569,35 @@ namespace soso {
 			}
 		}
 
-		for (const auto& [name, resourceInfo] : m_ReflectionData.ShaderResourceInfo) {
+		for (const auto& [name, resourceInfo] : m_ReflectionData.ShaderResources) {
 
 			SHADER_DEBUG("Resource - Name: {0}, BindingPoint: {1}", resourceInfo.GetName(), resourceInfo.GetBindingPoint());
 		}
+
 		SHADER_DEBUG("--------------------------------------");
+#endif // SHADER_DEBUG_LOG
+
 	}
 
 	void OpenGLShader::CreateUniformBufferObjects() {
-		 
-		// Some uniform buffers shouldnt be owned by the shader such as lighting UBOs that the renderer uses.
-		// Since we only need to retrieve Material UBOs currently, lets start there.
-
-		const auto& bufferInfo = m_ReflectionData.ShaderUniformBufferInfo;
-		
+	
+		const auto& bufferInfo = m_ReflectionData.ShaderUniformBuffers;
 		if (bufferInfo.empty()) return;
-		if (bufferInfo.find("Material") == bufferInfo.end()) return;
 
+		for (const auto& uniformBuffer : bufferInfo) {
 
-		const auto& materialUniformBufferInfo = bufferInfo.at("Material");
-		const auto& binding = materialUniformBufferInfo.BindingPoint;
-		const auto& size = materialUniformBufferInfo.Size;
+			const auto& UniformBufferInfo = uniformBuffer.second;
+			const auto& binding = UniformBufferInfo.BindingPoint;
+			const auto& size = UniformBufferInfo.Size;
 
-		auto uniformBuffer = UniformBuffer::Create(size, binding);
-		
-		using Key = decltype(s_UniformBuffers)::key_type;
-		Key key{ this, binding };
+			auto uniformBuffer = UniformBuffer::Create(size, binding);
 
-		s_UniformBuffers[key] = uniformBuffer;
+			using Key = decltype(s_UniformBuffers)::key_type;
+			Key key{ this, binding };
+
+			s_UniformBuffers[key] = uniformBuffer;
+		}
+
 	}
 
 	std::shared_ptr<UniformBuffer> OpenGLShader::GetUniformBuffer(uint32_t bindingPoint) const {
@@ -681,7 +686,12 @@ namespace soso {
 
 	void OpenGLShader::UploadMat4(const std::string& name, const glm::mat4& matrix) {
 		
-		GLint location = glGetUniformLocation(m_RendererID, name.c_str());
+		GLint location;
+		{
+			SS_PROFILE_SCOPE("-");
+			location = glGetUniformLocation(m_RendererID, name.c_str());
+
+		}
 		glUniformMatrix4fv(location, 1, GL_FALSE, glm::value_ptr(matrix));
 	}
 }

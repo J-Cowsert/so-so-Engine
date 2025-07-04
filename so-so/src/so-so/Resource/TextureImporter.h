@@ -7,22 +7,14 @@ namespace soso {
 	struct ImageResult {
 
 		ByteBuffer Buffer;
-		uint32_t Width, Height;
-
-		// Mainly for checking whether an image is HDR. If not it defualts to RGBA8
-		ImageFormat Format;
+		uint32_t Width = 0, Height = 0;
+		ImageFormat Format = ImageFormat::None; // Mainly for checking whether an image is HDR. If not, defualts to RGBA8
 	};
 
 	class TextureImporter {
 	public:
 
 		static ImageResult LoadImageFromFile(const std::filesystem::path& path);
-		static ImageResult LoadImageFromBuffer(ByteBuffer buffer);
-
-		static std::shared_ptr<Texture2D> LoadTexture2D(const std::filesystem::path& path);
-
-		static std::shared_ptr<TextureCube> LoadTextureCube(const std::array<std::filesystem::path, 6>& paths);
-		static std::shared_ptr<TextureCube> LoadTextureCube(std::initializer_list<std::filesystem::path> paths);
-
+		static ImageResult LoadImageFromBuffer(ByteBuffer buffer); // TODO: Test
 	};
 }

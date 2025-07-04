@@ -7,7 +7,7 @@
 
 namespace soso {
 
-	std::shared_ptr<Material> Material::Create(const std::shared_ptr<Shader>& shader, const std::string& name) {
+	std::shared_ptr<Material> Material::Create(const std::shared_ptr<Shader>& shader, const std::string& targetUB, const std::string& name) {
 	
 		switch (Renderer::GetAPI()) {
 	
@@ -15,7 +15,7 @@ namespace soso {
 			SS_CORE_ASSERT(false, "RendererAPI is set to None"); return nullptr;
 	
 		case RendererAPI::API::OpenGL:
-			return std::make_shared<OpenGLMaterial>(shader, name);
+			return std::make_shared<OpenGLMaterial>(shader, targetUB, name);
 		}
 	
 		SS_CORE_ASSERT(false, "RendererAPI is undefined");

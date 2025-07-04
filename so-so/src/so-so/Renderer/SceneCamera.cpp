@@ -262,6 +262,8 @@ namespace soso {
 
 	void SceneCamera::SetViewportSize(uint32_t width, uint32_t height) {
 
+		SS_CORE_ASSERT(false, "");
+
 		if (m_ViewportWidth == width && m_ViewportHeight == height)
 			return;
 

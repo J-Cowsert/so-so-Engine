@@ -3,12 +3,14 @@
 
 #include <glad/glad.h>
 
+#include "so-so/Core/Profiler.h"
+
 // WIP
 
 namespace soso {
 
-    OpenGLMaterial::OpenGLMaterial(const std::shared_ptr<Shader>& shader, const std::string& name) 
-        : m_Shader(shader), m_Name(name)
+    OpenGLMaterial::OpenGLMaterial(const std::shared_ptr<Shader>& shader, const std::string& targetUB, const std::string& name)
+        : m_Shader(shader), m_Name(name), m_TargetUniformBufferName(targetUB)
     {
         AllocateByteBufferMemory();
 
@@ -35,14 +37,16 @@ namespace soso {
 
     void OpenGLMaterial::Bind() {
 
+        SS_PROFILE_FUNCTION();
+
         //m_Shader->Bind();
 
         if (m_IsDirty) {
 
             const auto& shaderBuffers = m_Shader->GetShaderBuffers();
-            if (shaderBuffers.find("Material") != shaderBuffers.end()) {
+            if (shaderBuffers.find(m_TargetUniformBufferName) != shaderBuffers.end()) {
 
-                const auto& materialBuffer = shaderBuffers.at("Material");
+                const auto& materialBuffer = shaderBuffers.at(m_TargetUniformBufferName);
                 m_UniformBuffer = m_Shader->GetUniformBuffer(materialBuffer.BindingPoint);
             }
 
@@ -55,22 +59,33 @@ namespace soso {
             m_UniformBuffer->Bind();
         }
        
-        for (auto&& [binding, texture] : m_Texture2Ds) {
+        // TODO: Look into sampler objects
+        for (auto& [binding, texture] : m_Texture2Ds) {
             
-            // TODO: Look into sampler objects
+            if (texture) texture->Bind(binding);
+        }
+
+        for (auto& [binding, texture] : m_TextureCubes) {
+
             if (texture) texture->Bind(binding);
         }
     }
 
     void OpenGLMaterial::AllocateByteBufferMemory() {
 
+        SS_PROFILE_FUNCTION();
+
         const auto& shaderBuffers = m_Shader->GetShaderBuffers();
 
-        // --- Material must be the UniformBuffers name in the shader ---
-        if (shaderBuffers.find("Material") == shaderBuffers.end()) {
+        
+        if (shaderBuffers.find(m_TargetUniformBufferName) == shaderBuffers.end()) {
+
+            SS_CORE_WARN("Uniform-block '{0}' not found in shader '{1}'", m_TargetUniformBufferName, m_Shader->GetName());
             return;
         }
-        const auto& materialBuffer = shaderBuffers.at("Material");
+
+
+        const auto& materialBuffer = shaderBuffers.at(m_TargetUniformBufferName);
 
         SS_CORE_ASSERT(materialBuffer.Size > 0, "");
 
@@ -80,11 +95,13 @@ namespace soso {
 
     const ShaderUniform* OpenGLMaterial::FindUniformInfo(const std::string& name) {
 
+        SS_PROFILE_FUNCTION();
+
         const auto& shaderBuffers = m_Shader->GetShaderBuffers();
 
         // --- Material must be the UniformBuffers name in the shader ---
 
-        auto iter = shaderBuffers.find("Material");
+        auto iter = shaderBuffers.find(m_TargetUniformBufferName);
         if (iter == shaderBuffers.end()) {
             return nullptr;
         }
@@ -99,6 +116,8 @@ namespace soso {
     }
 
     const ShaderResourceInfo* OpenGLMaterial::FindResourceInfo(const std::string& name) {
+
+        SS_PROFILE_FUNCTION();
         
         auto& resources = m_Shader->GetResources();
         for (const auto& [n, resource] : resources) {
@@ -152,7 +171,7 @@ namespace soso {
 
         const auto& info = FindResourceInfo(name);
 
-        //SS_CORE_ASSERT(info, "Could not find info");
+        SS_CORE_ASSERT(info, "Could not find info");
 
         if (!info) {
             SS_CORE_WARN("Could not find resource: {0}", name);
@@ -166,23 +185,30 @@ namespace soso {
 
         const auto& info = FindResourceInfo(name);
 
-        SS_CORE_ASSERT(info, "Could not find info");
+        //SS_CORE_ASSERT(info, "Could not find info");
 
         if (!info) {
             SS_CORE_WARN("Could not find resource: {0}", name);
             return;
         }
 
-        m_Texture2Ds[info->GetBindingPoint()] = value;
+        m_TextureCubes[info->GetBindingPoint()] = value;
     }
 
     std::shared_ptr<TextureCube> OpenGLMaterial::GetTextureCube(const std::string& name) {
-        SS_CORE_ASSERT(false, "not implemented");
 
         const auto& info = FindResourceInfo(name);
-        SS_CORE_ASSERT(info, "Could not find info");
-        auto& texCube = m_Texture2Ds.at(info->GetBindingPoint());
-        return nullptr;
+
+        //SS_CORE_ASSERT(info, "Could not find info");
+
+        if (!info) {
+            SS_CORE_WARN("Could not find resource: {0}", name);
+            return nullptr;
+        }
+
+        auto& texCube = m_TextureCubes.at(info->GetBindingPoint());
+
+        return texCube;
     }
 
 }

@@ -5,7 +5,8 @@
 #include "Input.h"
 #include "Utils.h"
 #include "so-so/Renderer/Renderer.h"
-#include "glad/glad.h" // This shouldnt be here
+
+#include "Profiler.h"
 
 namespace soso {
 
@@ -65,17 +66,22 @@ namespace soso {
 			Timestep timestep = time - m_LastFrameTime;
 			m_LastFrameTime = time;
 
-			ExecuteMainThreadQueue();
+			FlushMainThreadQueue();
 
 			for (Layer* layer : m_LayerStack)
-				layer->OnUpdate(timestep);
+				layer->OnUpdate(timestep);			
 
 			m_ImGuiLayer->Begin();
 			for (Layer* layer : m_LayerStack)
 				layer->OnImGuiRender();
 			m_ImGuiLayer->End();
-
+			
 			m_Window->OnUpdate();
+
+			m_CurrentFrameIndex = (m_CurrentFrameIndex + 1) % Renderer::GetConfig().MaxFramesInFlight;
+
+
+			SS_PROFILE_FRAME_MARK();
 		}
 	}
 
@@ -85,7 +91,7 @@ namespace soso {
 		m_MainThreadQueue.emplace_back(function);
 	}
 
-	void Application::ExecuteMainThreadQueue() {
+	void Application::FlushMainThreadQueue() {
 
 		std::scoped_lock<std::mutex> lock(m_MainThreadQueueMutex);
 

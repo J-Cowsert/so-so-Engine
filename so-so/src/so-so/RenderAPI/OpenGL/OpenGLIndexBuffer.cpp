@@ -12,7 +12,7 @@ namespace soso {
 		glNamedBufferData(m_RendererID, size, nullptr, GL_DYNAMIC_DRAW);
 	}
 
-	OpenGLIndexBuffer::OpenGLIndexBuffer(void* indices, uint32_t size)
+	OpenGLIndexBuffer::OpenGLIndexBuffer(const void* indices, uint32_t size)
 		:m_Size(size) 
 	{
 		glCreateBuffers(1, &m_RendererID);

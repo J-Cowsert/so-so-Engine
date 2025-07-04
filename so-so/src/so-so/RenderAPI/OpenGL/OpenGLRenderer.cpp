@@ -3,6 +3,8 @@
 
 #include "glad/glad.h"
 
+#include "Core/Profiler.h"
+
 namespace soso {
 
 	namespace Utils {
@@ -49,17 +51,27 @@ namespace soso {
 		glDebugMessageControl(GL_DONT_CARE, GL_DONT_CARE, GL_DEBUG_SEVERITY_NOTIFICATION, 0, NULL, GL_FALSE);
 	#endif
 
-		//glEnable(GL_MULTISAMPLE);
 		glEnable(GL_CULL_FACE);
-		//glCullFace(GL_BACK);
+		glCullFace(GL_BACK);
 		glFrontFace(GL_CCW);
 
+		//glEnable(GL_FRAMEBUFFER_SRGB);
+		//glEnable(GL_MULTISAMPLE);
+		//glEnable(GL_SAMPLE_SHADING);
+		//glMinSampleShading(1.0f);  // fraction of samples that must run the fragment shader
+
 		glEnable(GL_DEPTH_TEST);
-		glEnable(GL_BLEND);
-		glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+		//glEnable(GL_BLEND);
+		//glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 		glEnable(GL_LINE_SMOOTH);
 		glEnable(GL_TEXTURE_CUBE_MAP_SEAMLESS);
-		//glEnable(GL_FRAMEBUFFER_SRGB);
+
+
+
+		glPointSize(2.0f);
+		glLineWidth(2.0f);
+
+
 
 		SetClearColor(1, 0, 1, 1);
 
@@ -84,7 +96,16 @@ namespace soso {
 		glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT | GL_STENCIL_BUFFER_BIT);
 	}
 
-	void OpenGLRenderer::DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray, const uint32_t indexCount, PrimitiveType type /* = PrimitiveType::Triangles */) {
+	void OpenGLRenderer::DispatchCompute(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) {
+
+		glDispatchCompute(groupCountX, groupCountY, groupCountZ);
+
+		glMemoryBarrier(
+			GL_ALL_BARRIER_BITS
+		);
+	}
+
+	void OpenGLRenderer::DrawIndexed(const std::shared_ptr<VertexArray>& vertexArray, const uint32_t indexCount, PrimitiveType type) {
 
 		vertexArray->Bind();
 		glDrawElements(Utils::PrimativeTypeToGLType(type), (indexCount) ? indexCount : vertexArray->GetIndexBuffer()->GetCount(), GL_UNSIGNED_INT, nullptr);
@@ -98,6 +119,8 @@ namespace soso {
 
 	void OpenGLRenderer::DrawSkybox(const std::shared_ptr<Material> material, const std::shared_ptr<VertexArray>& vertexArray) {
 
+		SS_PROFILE_FUNCTION();
+
 		auto&& shader = material->GetShader();
 
 		shader->Bind();
@@ -109,47 +132,37 @@ namespace soso {
 		glDepthFunc(GL_LESS);
 	}
 
-	void OpenGLRenderer::DrawMesh(std::shared_ptr<Mesh> mesh, std::shared_ptr<UniformBuffer> transformUB, const glm::mat4& transform, const std::shared_ptr<Material>& materialOverride, const std::shared_ptr<Shader>& shaderOverride) {
-		
-		mesh->m_VertexArray->Bind();
+	void OpenGLRenderer::DrawMesh(Mesh* mesh, UniformBuffer* transformUB, const glm::mat4& transform, Material* materialOverride, const Shader* shaderOverride) {
 
-		const auto& shader = (shaderOverride) ? shaderOverride : mesh->m_DefaultShader;
+		SS_PROFILE_FUNCTION();
+
 		const auto& materials = mesh->m_Materials;
+		const auto shader = (shaderOverride) ? shaderOverride : materials[0]->GetShader().get(); // All meshes are pbr
 
-		// Tracks last bound material to skip redundant Bind() calls
-		const Material* lastUsedMat = nullptr;
+		const Material* lastUsedMat = nullptr; // Tracks last bound material to skip redundant Bind calls
+		mesh->m_VertexArray->Bind();
+		shader->Bind();
 
-		//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 		for (auto&& submesh : mesh->m_Submeshes) {
+			SS_PROFILE_SCOPE("Loop");
+		
+			auto material = (materialOverride) ? materialOverride : materials[submesh.MaterialIndex].get();
 
-			const auto& material = (materialOverride) ? materialOverride : materials[submesh.MaterialIndex];
-
-			//if (shader)
-			//	shader->Bind();
-			//else
-			//	material->GetShader()->Bind();
-
-			shader->Bind();
-
-			if (material.get() != lastUsedMat) { material->Bind(); lastUsedMat = material.get(); }
-
+			if (material != lastUsedMat) { material->Bind(); lastUsedMat = material; }
+			
 			glm::mat4 localTransform = transform * submesh.Transform;
-
 			transformUB->SetData(&localTransform, sizeof(localTransform));
-
+			
 			glDrawElementsBaseVertex(GL_TRIANGLES,
 				submesh.IndexCount,
 				GL_UNSIGNED_INT,
 				(void*)(sizeof(uint32_t) * submesh.BaseIndex),
-				submesh.BaseVertex);
-
-			//s_Stats.DrawCalls++;
+				submesh.BaseVertex
+			);
+			
 		}
-		glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	}
-
-	
 
 	void OpenGLRenderer::SetLineWidth(float width) {
 		glLineWidth(width);

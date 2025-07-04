@@ -22,7 +22,7 @@ namespace soso {
 		return nullptr;
 	}
 
-	std::shared_ptr<IndexBuffer> IndexBuffer::Create(void* indices, uint32_t size) {
+	std::shared_ptr<IndexBuffer> IndexBuffer::Create(const void* indices, uint32_t size) {
 
 		switch (Renderer::GetAPI()) {
 		case RendererAPI::API::None:

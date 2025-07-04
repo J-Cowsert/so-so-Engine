@@ -1,43 +1,27 @@
 #pragma once
 
 #include "so-so/Core/Core.h"
+
+#include "Texture.h" // SamplerWrap, SamplerFilter, ImageFormat
+
 #include <vector>
 
 namespace soso {
 
-	enum class FrameBufferTextureFormat {
-		None = 0,
-		RGBA8,
-		DEPTH24STENCIL8,
-		DEPTH32F,
-		RED_INTEGER
-	};
-
-	enum class TextureFiltering {
-		Nearest,
-		Linear
-	};
-
-	// TODO: Implement in backend
-	enum class TextureWrap {
-		Repeat,
-		ClampToEdge,
-		ClampToBorder
-	};
-
+	// TODO: Implement SamplerFilter and SamplerWrap in backend
 	struct FrameBufferTextureConfig {
 
 		FrameBufferTextureConfig() = default;
 
-		FrameBufferTextureConfig(FrameBufferTextureFormat format,
-			TextureFiltering filtering = TextureFiltering::Linear,
-			TextureWrap wrap = TextureWrap::ClampToEdge)
-			: TextureFormat(format), Filtering(filtering), Wrap(wrap) {
+		FrameBufferTextureConfig(ImageFormat format, SamplerFilter filtering = SamplerFilter::Linear, SamplerWrap wrap = SamplerWrap::Clamp)
+			: ImageFormat(format), Filtering(filtering), Wrap(wrap) 
+		{
 		}
 
-		FrameBufferTextureFormat TextureFormat = FrameBufferTextureFormat::None;
-		TextureFiltering Filtering = TextureFiltering::Linear;
-		TextureWrap Wrap = TextureWrap::ClampToEdge;
+		ImageFormat ImageFormat;
+
+		SamplerFilter Filtering;
+		SamplerWrap Wrap;
 	};
 
 	struct FrameBufferAttachmentConfig {

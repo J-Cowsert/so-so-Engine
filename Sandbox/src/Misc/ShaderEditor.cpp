@@ -2,10 +2,11 @@
 
 #include "so-so/Renderer/Renderer.h"
 
+#include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
 
-#include <ostream>
-#include <istream>
+#include <fstream>
+
 
 namespace Utils {
 
@@ -92,6 +93,19 @@ void ShaderEditor::Draw() {
             Utils::WriteToDisk(m_Selected.Shader->GetFilepath(), m_Selected.SourceBuffer);
 
             m_Selected.Shader->Reload();
+        }
+
+        if (m_Selected.Shader->GetSources().begin()->first == soso::ShaderStage::Compute) {
+            
+            static glm::ivec3 wGroupSize(1);
+
+            ImGui::InputInt3("Dispatch Group Size", &wGroupSize[0]);
+            
+            if (ImGui::Button("Dispatch Compute")) {
+
+                m_Selected.Shader->Bind();
+                soso::Renderer::DispatchCompute(wGroupSize[0], wGroupSize[1], wGroupSize[2]);
+            }
         }
     }
 

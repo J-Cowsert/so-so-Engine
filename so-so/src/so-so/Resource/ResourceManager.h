@@ -1,12 +1,21 @@
 #pragma once
 
-#include "so-so/Core/core.h"
+#include "so-so/Core/Core.h"
 
 #include "Resource.h"
 
+#include "so-so/Core/Profiler.h"
+
 #include <unordered_map>
+#include <type_traits>
 
 namespace soso {
+
+	/*
+		WIP
+
+		Need serialization
+	*/
 
 	enum class ResourceLoadStatus {
 		None = 0,
@@ -14,59 +23,52 @@ namespace soso {
 		Loading,
 		Ready
 	};
-
+	
 	struct ResourceMetadata {
-
+	
 		ResourceID ID = 0;
 		ResourceType Type;
 		std::filesystem::path Filepath;
 
-		ResourceLoadStatus LoadStatus = ResourceLoadStatus::None;
+		//ResourceLoadStatus LoadStatus = ResourceLoadStatus::None;
 	};
-
-	// Add logging and asserts later. This class needs to be robust & should eventually be moved to it's own file
-	//
-	class ResourceRegistry {
-	public:
-
-		const ResourceMetadata& Get(const ResourceID id) const {
-			return m_Registry.at(id);
-		}
-
-		void Set(const ResourceID& id, ResourceMetadata metadata) {
-			m_Registry[id] = metadata;
-		}
-		
-		bool Contains(const ResourceID& id) {
-			return m_Registry.find(id) != m_Registry.end();
-		}
-
-		size_t Size() const {
-			return m_Registry.size();
-		}
-
-
-	private:
-		std::unordered_map<ResourceID, ResourceMetadata> m_Registry;
-	};
-
-	// In the future this shouldn't be static. Each project should have an instance
-	// 
-	// look into std::exception for this class
+	
 	class ResourceManager {
 	public:
-		static void Init();
-		static void Shutdown();
+		//static void Init();
+		//static void Shutdown();
 
 		static bool IsResourceValid(ResourceID id);
-		
-		static std::vector<ResourceID> GetAllResourcesOfType(ResourceType type);
+
 		static std::shared_ptr<Resource> GetResource(const ResourceID& id);
-		static ResourceID GetResource(const std::filesystem::path& path);
-		static ResourceID LoadResource(const std::filesystem::path& path, ResourceType type);
+		static std::shared_ptr<Resource> GetResourceFromFilepath(const std::filesystem::path& path);
+		
+		template<typename T, typename...Args>
+		static std::shared_ptr<T> CreateResourceFromFile(Args&&...args) {
+
+			SS_PROFILE_FUNCTION();
+			static_assert(std::is_base_of<Resource, T>::value, "Must be a subclass of Resource");
+
+			std::shared_ptr<T> resource = T::Create(std::forward<Args>(args)...);
+			
+			auto tup = std::forward_as_tuple(std::forward<Args>(args)...);
+			auto& path = std::get<std::filesystem::path&>(tup);
+
+			ResourceMetadata meta;
+			meta.Filepath = path;
+			meta.ID = resource->ResourceID;
+			meta.Type = resource->GetResourceType();
+
+			SS_CORE_ASSERT(meta.ID != 0, "");
+
+			m_Registry[meta.ID] = meta;
+			m_LoadedResources[meta.ID] = resource;
+
+			return resource;
+		}
 
 	private:
-		static std::unordered_map<ResourceID, std::shared_ptr<Resource>> s_Resources;
-		static ResourceRegistry s_ResourceRegistry;
+		inline static std::unordered_map<ResourceID, std::shared_ptr<Resource>> m_LoadedResources;
+		inline static std::unordered_map<ResourceID, ResourceMetadata> m_Registry;
 	};
 }

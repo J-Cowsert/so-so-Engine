@@ -30,13 +30,28 @@ namespace soso {
 		return nullptr;
 	}
 
-	std::shared_ptr<TextureCube> TextureCube::Create(const TextureConfig& config, const std::array<ByteBuffer, 6>& data) {
 
+	//========================================================================================================================
+
+
+	//std::shared_ptr<TextureCube> TextureCube::Create(const TextureConfig& config, const std::array<ByteBuffer, 6>& data) {
+	//
+	//	switch (Renderer::GetAPI()) {
+	//		case RendererAPI::API::None:    SS_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
+	//		case RendererAPI::API::OpenGL:  return std::make_shared<OpenGLTextureCube>(config, data);
+	//	}
+	//
+	//	SS_CORE_ASSERT(false, "Unknown RendererAPI");
+	//	return nullptr;
+	//}
+
+	std::shared_ptr<TextureCube> TextureCube::Create(const TextureConfig& config, ByteBuffer data) {
+	
 		switch (Renderer::GetAPI()) {
-			case RendererAPI::API::None:    SS_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
-			case RendererAPI::API::OpenGL:  return std::make_shared<OpenGLTextureCube>(config, data);
+		case RendererAPI::API::None:    SS_CORE_ASSERT(false, "RendererAPI::None is currently not supported!"); return nullptr;
+		case RendererAPI::API::OpenGL:  return std::make_shared<OpenGLTextureCube>(config);
 		}
-
+	
 		SS_CORE_ASSERT(false, "Unknown RendererAPI");
 		return nullptr;
 	}

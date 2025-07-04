@@ -6,7 +6,7 @@ namespace soso {
 	class OpenGLIndexBuffer : public IndexBuffer {
 	public:
 		OpenGLIndexBuffer(uint32_t size);
-		OpenGLIndexBuffer(void* indices, uint32_t size);
+		OpenGLIndexBuffer(const void* indices, uint32_t size);
 		virtual ~OpenGLIndexBuffer();
 
 		OpenGLIndexBuffer(const OpenGLIndexBuffer& other) = delete;

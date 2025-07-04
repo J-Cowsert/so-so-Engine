@@ -17,7 +17,8 @@ namespace soso {
 
 	class Material {
 	public:
-		static std::shared_ptr<Material> Create(const std::shared_ptr<Shader>& shader, const std::string& name = "");
+		// TODO: Target UB string is a temporary hot-fix to be able to generalize Material for any shader buffer.
+		static std::shared_ptr<Material> Create(const std::shared_ptr<Shader>& shader, const std::string& targetUB = "Material", const std::string& name = "");
 		static std::shared_ptr<Material> Copy(const std::shared_ptr<Material>& other, const std::string& name = "");
 		virtual ~Material() = default;
 	

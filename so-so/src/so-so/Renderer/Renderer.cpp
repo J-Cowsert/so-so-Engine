@@ -1,52 +1,80 @@
 #include "sspch.h"
 #include "Renderer.h"
 
-#include "Mesh.h"
-#include "Material.h"
-#include "SceneCamera.h"
-#include "UniformBuffer.h"
+#include "Core/Application.h"
+#include "Core/Profiler.h"
+
+#include "ShaderLibrary.h"
 #include "FrameBuffer.h"
+#include "Material.h"
+#include "Mesh.h"
+#include "SceneCamera.h"
 
 #include "so-so/ImGui/ImGuiWidgets.h"
-// Temporary
+
 #include "so-so/RenderAPI/OpenGL/OpenGLRenderer.h"
-#include "glad/glad.h"
 #include "imgui.h"
+
+// Temporary
+#include "glad/glad.h"
 
 namespace soso {
 
 	static RendererAPI* s_RendererAPI = nullptr;
-	Statistics Renderer::s_Stats{};
 
 	void Renderer::Init() {
+
+		SS_PROFILE_FUNCTION();
 		
 		s_RendererAPI = new OpenGLRenderer; 
 		s_RendererAPI->Init();
 
-		s_Data = new SceneRendererData;
-		auto& data = s_Data;
+		s_Data = new RendererData;
 
-		FrameBufferConfig compositeConfig;
-		compositeConfig.Attachments = { FrameBufferTextureFormat::RGBA8, FrameBufferTextureFormat::DEPTH24STENCIL8 };
-		compositeConfig.Width = 1280; // Need to handle resizing, also not hardcode this.
-		compositeConfig.Height = 720;
-		data->CompositeFrameBuffer = FrameBuffer::Create(compositeConfig);
+		auto& data = *s_Data;
+		auto& frameData = data.FrameData;
+
+		FrameBufferConfig geometryConfig;
+		geometryConfig.Attachments = { ImageFormat::RGBA32F, ImageFormat::DEPTH24STENCIL8 };
+		geometryConfig.Width = 1920;
+		geometryConfig.Height = 1080;
+		data.GeometryFrameBuffer = FrameBuffer::Create(geometryConfig);
 
 		FrameBufferConfig shadowConfig;
-		shadowConfig.Attachments = { FrameBufferTextureFormat::DEPTH32F };
-		shadowConfig.Width = 4096;
-		shadowConfig.Height = 4096;
-		data->ShadowPassFrameBuffer = FrameBuffer::Create(shadowConfig);
+		shadowConfig.Attachments = { ImageFormat::DEPTH32F };
+		shadowConfig.Width = 2048;
+		shadowConfig.Height = 2048;
+		data.ShadowPassFrameBuffer = FrameBuffer::Create(shadowConfig);
+
+		FrameBufferConfig compositeConfig;
+		compositeConfig.Attachments = { ImageFormat::RGBA8 };
+		compositeConfig.Width = 1920; // Need to handle resizing, also not hardcode this.
+		compositeConfig.Height = 1080;
+		compositeConfig.Samples = 1;
+		data.CompositeFrameBuffer = FrameBuffer::Create(compositeConfig);
 
 		// Load shaders
-		data->ShaderLibrary = std::make_shared<ShaderLibrary>();
-		data->ShaderLibrary->Load("Resources/Shader/PBR.glsl");
-		data->ShaderLibrary->Load("Resources/Shader/Debug.glsl");
-		data->ShaderLibrary->Load("Resources/Shader/Skybox.glsl");
-		data->ShaderLibrary->Load("Resources/Shader/FSQuad.glsl");
-		data->ShaderLibrary->Load("Resources/Shader/DirectionalShadowMap.glsl");
-		
-		data->ShadowMapShader = data->ShaderLibrary->Get("DirectionalShadowMap");
+		data.ShaderLibrary = std::make_shared<ShaderLibrary>();
+		data.ShaderLibrary->Load("Resources/Shader/PBR.glsl");
+		data.ShaderLibrary->Load("Resources/Shader/Debug.glsl");
+		data.ShaderLibrary->Load("Resources/Shader/MeshWireframe.glsl");
+		data.ShaderLibrary->Load("Resources/Shader/Skybox.glsl");
+		data.ShaderLibrary->Load("Resources/Shader/FSQuad.glsl");
+		data.ShaderLibrary->Load("Resources/Shader/DirectionalShadowMap.glsl");
+		data.ShaderLibrary->Load("Resources/Shader/Line.glsl");
+		data.ShaderLibrary->Load("Resources/Shader/PostProcess.glsl");
+
+		data.ShaderLibrary->Load("Resources/Shader/EquirectangularToCubeCompute.glsl");
+		data.ShaderLibrary->Load("Resources/Shader/IrradianceMapCompute.glsl");
+		data.ShaderLibrary->Load("Resources/Shader/RadianceMapCompute.glsl");
+
+		data.ShadowMapShader = data.ShaderLibrary->Get("DirectionalShadowMap");
+		data.FinalPassShader = data.ShaderLibrary->Get("PostProcess");
+
+		data.FinalPassMaterial = Material::Create(data.FinalPassShader, "Uniform", "FinalPass");
+		data.SceneData.EnviromentMaterial = Material::Create(data.ShaderLibrary->Get("PBR"));
+		data.SceneData.SkyboxMaterial = Material::Create(data.ShaderLibrary->Get("Skybox"));
+
 
 		// Create default white texture
 		TextureConfig config;
@@ -54,19 +82,20 @@ namespace soso {
 		config.Width = 1;
 		config.Height = 1;
 		uint32_t whiteTextureData = 0xffffffff;
-		data->WhiteTexture = Texture2D::Create(config, ByteBuffer(&whiteTextureData, sizeof(uint32_t)));
+		data.WhiteTexture = Texture2D::Create(config, ByteBuffer(&whiteTextureData, sizeof(uint32_t)));
+
 
 		// Create global UniformBuffers
-		data->CameraBufferUBObject = UniformBuffer::Create(sizeof(CameraUBData), 0);
-		data->TransformBufferUBObject = UniformBuffer::Create(sizeof(glm::mat4), 1);
-		data->LightBufferUBObject = UniformBuffer::Create(sizeof(DirectionalLightUBData), 2);
-		data->ShadowLightViewUBObject = UniformBuffer::Create(sizeof(DirectionalShadowMapUBData), 4);
+		frameData.CameraBufferUBObject = UniformBuffer::Create(sizeof(CameraUBData), 0);
+		frameData.LightBufferUBObject = UniformBuffer::Create(sizeof(DirectionalLightUBData), 2);
+		frameData.ShadowLightViewUBObject = UniformBuffer::Create(sizeof(DirectionalShadowMapUBData), 4);
+		frameData.TransformUBObject = UniformBuffer::Create(sizeof(glm::mat4), 1);
+
 
 		// Default Directional light settings
-		data->FrameData.DirLightUBData.Direction = glm::vec4(0.0f, -1.0f, 0.03f, 1.0f);
-		data->FrameData.DirLightUBData.Ambient = glm::vec4(0.9f);
-		data->FrameData.DirLightUBData.Diffuse = glm::vec4(1.0f);
-		data->FrameData.DirLightUBData.Specular = glm::vec4(1.0f);
+		data.FrameData.DirLightUBData.Direction = glm::vec4(0.0f, -1.0f, 0.03f, 1.0f);
+		data.FrameData.DirLightUBData.Intensity = glm::vec4(1.0f);
+		data.FrameData.DirLightUBData.AmbiantFactor = glm::vec4(0.4f);
 
 		{
 			float cubeVertices[] = {
@@ -101,7 +130,7 @@ namespace soso {
 				6, 2, 1
 			};
 
-			data->CubeVertexArray = VertexArray::Create();
+			data.CubeVertexArray = VertexArray::Create();
 
 			VertexBufferLayout vbLayout = { 
 				{ soso::ShaderDataType::Float3, "a_Position" } 
@@ -109,8 +138,8 @@ namespace soso {
 
 			auto vb = VertexBuffer::Create(cubeVertices, sizeof(cubeVertices));
 			vb->SetLayout(vbLayout);
-			data->CubeVertexArray->AddVertexBuffer(vb);
-			data->CubeVertexArray->SetIndexBuffer(IndexBuffer::Create(cubeIndices, sizeof(cubeIndices)));
+			data.CubeVertexArray->AddVertexBuffer(vb);
+			data.CubeVertexArray->SetIndexBuffer(IndexBuffer::Create(cubeIndices, sizeof(cubeIndices)));
 		}
 
 		{
@@ -130,7 +159,7 @@ namespace soso {
 			quadData[3].Pos = glm::vec3(-1, 1, 0);
 			quadData[3].TexCoord = glm::vec2(0, 1);
 
-			data->FSQuadVertexArray = VertexArray::Create();
+			data.FSQuadVertexArray = VertexArray::Create();
 
 			VertexBufferLayout vbLayout = {
 				{ ShaderDataType::Float3, "a_Position" },
@@ -142,79 +171,119 @@ namespace soso {
 			auto vb = VertexBuffer::Create(quadData, 4 * sizeof(QuadVertexData));
 			vb->SetLayout(vbLayout);
 
-			data->FSQuadVertexArray->AddVertexBuffer(vb);
-			data->FSQuadVertexArray->SetIndexBuffer(IndexBuffer::Create(indices, 6 * sizeof(uint32_t)));
+			data.FSQuadVertexArray->AddVertexBuffer(vb);
+			data.FSQuadVertexArray->SetIndexBuffer(IndexBuffer::Create(indices, 6 * sizeof(uint32_t)));
 
 			delete[] quadData;
 		}
 
 
-		// Skybox Material
-		data->SkyboxMaterial = Material::Create(data->ShaderLibrary->Get("Skybox"), "skybox");
+		// Primitive geometry setup
+		s_PrimitiveData = new PrimitiveGeometryRendererData;
+		s_PrimitiveData->LineVertexArray = VertexArray::Create();
+		s_PrimitiveData->LineVertexBuffer = VertexBuffer::Create(s_PrimitiveData->c_MaxLineCount * 2 * sizeof(LineVertex));
+
+		VertexBufferLayout lineLayout = {
+				{ ShaderDataType::Float3, "a_Position" },
+				{ ShaderDataType::Float4, "a_Color" }
+		};
+
+		s_PrimitiveData->LineVertexBuffer->SetLayout(lineLayout);
+		s_PrimitiveData->LineVertexArray->AddVertexBuffer(s_PrimitiveData->LineVertexBuffer);
+		s_PrimitiveData->LineVertexBufferBasePtr = std::make_unique<LineVertex[]>(s_PrimitiveData->c_MaxLineCount * 2);
+		s_PrimitiveData->LineVertexBufferCurrentPtr = s_PrimitiveData->LineVertexBufferBasePtr.get();
+
+		s_PrimitiveData->LineShader = data.ShaderLibrary->Get("Line");
 
 	}
 
 	void Renderer::Shutdown() {
 
 		delete s_Data;
+		delete s_PrimitiveData;
 		delete s_RendererAPI;
 	}
 
 	void Renderer::BeginScene(SceneCamera& camera) {
 
+		SS_PROFILE_FUNCTION();
 		
-		if (s_Resize) {
-
-			s_Data->ShadowPassFrameBuffer->Resize((uint32_t)s_WindowSize.x, (uint32_t)s_WindowSize.y);
-			s_Data->CompositeFrameBuffer->Resize((uint32_t)s_WindowSize.x, (uint32_t)s_WindowSize.y);
-			s_Resize = false;
-		}
+		//if (s_Resize) {
+		//
+		//	s_Data->ShadowPassFrameBuffer->Resize((uint32_t)s_WindowSize.x, (uint32_t)s_WindowSize.y);
+		//	s_Data->CompositeFrameBuffer->Resize((uint32_t)s_WindowSize.x, (uint32_t)s_WindowSize.y);
+		//	s_Resize = false;
+		//}
 
 		s_Stats.DrawCalls = 0;
 		s_Stats.Meshes = 0;
 
-		auto& data = s_Data;
-		FrameData& frameData = s_Data->FrameData;
-
+		auto& data = *s_Data;
+		auto& frameData = data.FrameData;
+		auto& lightData = frameData.DirLightUBData;
 		auto& cameraData = frameData.CameraUBData;
+		auto& dirShadowData = frameData.DirShadowMapUBData;
+
 		cameraData.ViewProjection = camera.GetViewProjection();
 		cameraData.RotationOnlyViewProjection = camera.GetProjection() * glm::mat4(glm::mat3(camera.GetViewMatrix()));
 		cameraData.CameraPos = glm::vec4(camera.GetPosition(), 1.0f);
 
-		auto& lightData = frameData.DirLightUBData;
-		auto& dirShadowData = frameData.DirShadowMapUBData;
-
+		// Shadow Map 
 		glm::vec3 lightDir = glm::normalize(glm::vec3(lightData.Direction));
-		glm::vec3 eye = -lightDir * 20.0f; // push back so ortho covers scene
+		glm::vec3 eye = -lightDir * s_RendererSettings.ShadowEyeFactor; // push back so ortho covers scene
 		glm::vec3 target = glm::vec3(0.0f);
-		auto nearPlane = 0.1f, farPlane = 50.0f;
-
-		auto&& LightProjection = glm::ortho(-50.0f, 50.0f, -50.0f, 50.0f, nearPlane, farPlane);
+		auto nearPlane = s_RendererSettings.ShadowNearPlane, farPlane = s_RendererSettings.ShadowFarPlane;
+		auto& f = s_RendererSettings.ShadowFrustumBounds;
+		auto&& LightProjection = glm::ortho(-f, f, -f, f, nearPlane, farPlane);
 		auto&& LightView = glm::lookAt(eye, target + lightDir, glm::vec3(0, 1, 0));
 		dirShadowData.LightViewProjection = LightProjection * LightView;
 
-		data->CameraBufferUBObject->SetData(&cameraData, sizeof(cameraData));
-		data->LightBufferUBObject->SetData(&lightData, sizeof(DirectionalLightUBData));
-		data->ShadowLightViewUBObject->SetData(&dirShadowData, sizeof(DirectionalShadowMapUBData));
+		data.FinalPassMaterial->Set("u_Uniform.Exposure", camera.GetExposure());
+		
+		// Update per-frame GPU state
+		frameData.CameraBufferUBObject->SetData(&cameraData, sizeof(cameraData));
+		frameData.LightBufferUBObject->SetData(&lightData, sizeof(DirectionalLightUBData));
+		frameData.ShadowLightViewUBObject->SetData(&dirShadowData, sizeof(DirectionalShadowMapUBData));
+
+		BeginPrimitiveGeometryBatch();
 	}
 
 	void Renderer::EndScene() {
 
-		FlushDrawList();
+		SS_PROFILE_FUNCTION();
+
+		s_Stats.LineCount = s_PrimitiveData->LineCount;
+		Flush();
+	}
+
+	void Renderer::DispatchCompute(uint32_t groupCountX, uint32_t groupCountY, uint32_t groupCountZ) {
+
+		SS_PROFILE_FUNCTION();
+
+		s_RendererAPI->DispatchCompute(groupCountX, groupCountY, groupCountZ);
 	}
 
 	void Renderer::Submit(const std::shared_ptr<Shader> shader, const std::shared_ptr<VertexArray>& vertexArray, const glm::mat4& transform) {
 
+		SS_PROFILE_FUNCTION();
+
 		shader->Bind();
-		s_Data->TransformBufferUBObject->SetData(&transform, sizeof(transform));
+		shader->SetUniform("u_Transform", transform);
+
 		s_RendererAPI->DrawIndexed(vertexArray);
 		s_Stats.DrawCalls++;
 	}
 
-	void Renderer::RenderFullscreenQuad() {
+	void Renderer::RenderFullscreenQuad(std::shared_ptr<Material> material) {
+		
+		SS_PROFILE_FUNCTION();
 
-		auto&& shader = s_Data->ShaderLibrary->Get("FSQuad");
+		auto&& shader = (material) ? material->GetShader() : s_Data->ShaderLibrary->Get("FSQuad");
 		shader->Bind();
+		
+		if (material) 
+			material->Bind();
+
 		s_RendererAPI->DrawIndexed(s_Data->FSQuadVertexArray, 6);
 		s_Stats.DrawCalls++;
 	}
@@ -222,103 +291,287 @@ namespace soso {
 
 	void Renderer::SubmitMesh(std::shared_ptr<Mesh> mesh, const glm::mat4& transform, const std::shared_ptr<Material>& materialOverride) {
 
-		// TODO: batching, culling, etc
+		SS_PROFILE_FUNCTION();
 
-		DrawCommand& command = s_Data->DrawList.emplace_back();
-		command.Mesh = mesh;
-		command.Transform = transform;
-		command.MaterialOverride = materialOverride;
+		// TODO: culling
 
-		s_Stats.DrawCalls += (uint32_t)mesh->m_Submeshes.size();
-		s_Stats.Meshes++;
+		//DrawCommand& command = s_Data->DrawList.emplace_back();
+		//command.Mesh = mesh;
+		//command.Transform = transform;
+		//command.MaterialOverride = materialOverride;
+		//
+		//s_Stats.DrawCalls += (uint32_t)mesh->m_Submeshes.size();
+		//s_Stats.Meshes++;
+
+		for (const auto& submesh : mesh->GetSubmeshes()) {
+
+
+		}
 	}
 
 	void Renderer::SubmitQuad(std::shared_ptr<Material> material, const glm::mat4& transform) {
 
-		QuadCommand& command = s_Data->QDrawList.emplace_back();
-		command.Material = material;
-		command.Transform = transform;
-		s_Stats.DrawCalls++;
+		SS_CORE_ASSERT(false, "Not implemented");
 	}
 
 	void Renderer::SubmitLine(const glm::vec3& p0, const glm::vec3& p1, const glm::vec4& color) {
 
-		SS_CORE_ASSERT(false, "Not implemented");
+		SS_PROFILE_FUNCTION();
+
+		auto& data = *s_PrimitiveData;
+		if (data.LineCount >= data.c_MaxLineCount)
+			FlushPrimitiveGeometry();
+
+		data.LineVertexBufferCurrentPtr->Position = p0;
+		data.LineVertexBufferCurrentPtr->Color = color;
+		data.LineVertexBufferCurrentPtr++;
+
+		data.LineVertexBufferCurrentPtr->Position = p1;
+		data.LineVertexBufferCurrentPtr->Color = color;
+		data.LineVertexBufferCurrentPtr++;
+
+		data.LineCount++;
 	}
 
-	void Renderer::ShadowPass() {
+	void Renderer::SubmitAABB(const AABB& aabb, const glm::mat4& transform, const glm::vec4& color) {
 
-		auto& data = s_Data;
+		SS_PROFILE_FUNCTION();
 
-		data->ShadowPassFrameBuffer->Bind();
-		Clear(1, 0, 1, 1);
+		const glm::vec4 corners[8] = {
 
-		auto& shadowMapShader = data->ShadowMapShader;
-		auto& transformUB = data->TransformBufferUBObject;
+			// Bottom Face
+			transform * glm::vec4(aabb.Min.x, aabb.Min.y, aabb.Min.z, 1.0f),
+			transform * glm::vec4(aabb.Max.x, aabb.Min.y, aabb.Min.z, 1.0f),
+			transform * glm::vec4(aabb.Max.x, aabb.Min.y, aabb.Max.z, 1.0f),
+			transform * glm::vec4(aabb.Min.x, aabb.Min.y, aabb.Max.z, 1.0f),
 
-		for (const auto& dc : data->DrawList) {
+			// Top Face
+			transform * glm::vec4(aabb.Min.x, aabb.Max.y, aabb.Min.z, 1.0f),
+			transform * glm::vec4(aabb.Max.x, aabb.Max.y, aabb.Min.z, 1.0f),
+			transform * glm::vec4(aabb.Max.x, aabb.Max.y, aabb.Max.z, 1.0f),
+			transform * glm::vec4(aabb.Min.x, aabb.Max.y, aabb.Max.z, 1.0f)
+		};
 
-			s_RendererAPI->DrawMesh(dc.Mesh, transformUB, dc.Transform, dc.MaterialOverride, shadowMapShader);
+		for (uint32_t i = 0; i < 4; i++) {
+			SubmitLine(corners[i], corners[(i + 1) % 4], color);
 		}
 
-		data->ShadowPassFrameBuffer->Unbind();
+		for (uint32_t i = 0; i < 4; i++) {
+			SubmitLine(corners[i + 4], corners[((i + 1) % 4) + 4], color);
+		}
+
+		for (uint32_t i = 0; i < 4; i++) {
+			SubmitLine(corners[i], corners[i + 4], color);
+		}
+	}
+
+	void Renderer::BeginPrimitiveGeometryBatch() {
+
+		s_PrimitiveData->LineCount = 0;
+		s_PrimitiveData->LineVertexBufferCurrentPtr = s_PrimitiveData->LineVertexBufferBasePtr.get();
+	}
+
+	void Renderer::FlushPrimitiveGeometry() {
+
+		SS_PROFILE_FUNCTION();
+
+		auto& pdata = *s_PrimitiveData;
+		if (pdata.LineCount == 0)
+			return;
+
+		uint32_t vertexCount = pdata.LineCount * 2;
+
+		pdata.LineVertexBuffer->SetData(pdata.LineVertexBufferBasePtr.get(), vertexCount * sizeof(LineVertex));
+		pdata.LineShader->Bind();
+
+		s_RendererAPI->DrawArrays(pdata.LineVertexArray, vertexCount);
+		s_Stats.DrawCalls++;
+
+		pdata.LineCount = 0;
+		pdata.LineVertexBufferCurrentPtr = pdata.LineVertexBufferBasePtr.get();
 	}
 
 
-	void Renderer::FlushDrawList() {
+	void Renderer::Flush() {
 
-		ShadowPass();
+		SS_PROFILE_FUNCTION();
 		
-		auto& data = s_Data;
-		data->CompositeFrameBuffer->Bind();
-		
-		auto& transformUB = data->TransformBufferUBObject;
-		
+		auto& data = *s_Data;
+
+		auto transformUB = data.FrameData.TransformUBObject.get();
+
+
+		if (s_RendererSettings.ShadowPass) {
+
+			SS_PROFILE_SCOPE("Shadow Pass");
+
+			data.ShadowPassFrameBuffer->Bind();
+			Clear(1, 0, 1, 1);
+
+			auto shadowMapShader = data.ShadowMapShader.get();
+
+			for (auto& dc : data.DrawList) {
+
+				s_RendererAPI->DrawMesh(dc.Mesh, transformUB, dc.Transform, dc.MaterialOverride, shadowMapShader);
+			}
+
+			data.ShadowPassFrameBuffer->Unbind();
+
+		}
+
+		data.GeometryFrameBuffer->Bind();
 		{
 			Clear(0.2f, 0.2f, 0.2f, 1.0f);
 
 			// skybox pass
+			if (s_RendererSettings.SkyboxPass) {
+				
+				SS_PROFILE_SCOPE("Skybox Pass");
 
-			if (data->SkyboxTexture) {
-			
-				//s_RendererAPI->DrawSkybox(data->SkyboxMaterial, data->CubeVertexArray);
-				//s_Stats.DrawCalls++;
+				s_RendererAPI->DrawSkybox(data.SceneData.SkyboxMaterial, data.CubeVertexArray);
+				s_Stats.DrawCalls++;
+			}
+
+			// Opaque geometry pass
+			{
+				SS_PROFILE_SCOPE("Opaque Pass");
+
+				glBindTextureUnit(7, s_RendererSettings.ShadowPass ? data.ShadowPassFrameBuffer->GetDepthAttachmentRendererID() : data.WhiteTexture->GetTextureHandle());
+				data.SceneData.EnviromentMaterial->Bind();
+				for (auto& dc : data.DrawList) {
+					s_RendererAPI->DrawMesh(dc.Mesh, transformUB, dc.Transform, dc.MaterialOverride);
+				}
 			}
 
 
-			// opaque geometry pass
+			// Wireframe pass
 
-			glBindTextureUnit(7, data->ShadowPassFrameBuffer->GetDepthAttachmentRendererID());
-			for (const auto& dc : data->DrawList) {
+			if (s_RendererSettings.WirePass) {
 
-				s_RendererAPI->DrawMesh(dc.Mesh, transformUB, dc.Transform, dc.MaterialOverride);
+				SS_PROFILE_SCOPE("Wire Pass");
+
+				for (auto& dc : data.DrawList) {
+
+					s_RendererAPI->DrawMesh(dc.Mesh, transformUB, dc.Transform, dc.MaterialOverride, data.ShaderLibrary->Get("MeshWireframe").get());
+				}
 			}
 
-			// quad pass
-
-			for (const auto& dc : data->QDrawList) {
-
-				dc.Material->GetShader()->Bind();
-				dc.Material->Bind();
-				transformUB->SetData(&dc.Transform, sizeof(dc.Transform));
-				s_RendererAPI->DrawIndexed(data->FSQuadVertexArray);
-			}
+			// Render Primitive Geometry
+			FlushPrimitiveGeometry();
 
 		}
-		data->CompositeFrameBuffer->Unbind();
+		data.GeometryFrameBuffer->Unbind();
 
-		data->DrawList.clear();
-		data->QDrawList.clear();
+
+		data.CompositeFrameBuffer->Bind();
+		{
+			Clear(0.2f, 0.2f, 0.2f, 1.0f);
+		
+		
+			glBindTextureUnit(0, data.GeometryFrameBuffer->GetColorAttachmentRendererID());
+			RenderFullscreenQuad(data.FinalPassMaterial);
+		
+		}
+		data.CompositeFrameBuffer->Unbind();
+
+		data.DrawList.clear();
 	}
 
 	//=============================================================================================================================
 
+	Environment Renderer::CreateEnvironment(std::filesystem::path equirectangularHDRTexture) {
+
+		SS_PROFILE_FUNCTION();
+
+		auto& data = *s_Data;
+
+		auto inputTex = Texture2D::Create(TextureConfig(), equirectangularHDRTexture);
+		SS_CORE_ASSERT(inputTex->GetFormat() == ImageFormat::RGBA32F, "Must pass in HDR image file");
+
+		// Convert equirectangular HDR texture to textureCube
+		TextureConfig unfilteredConfig;
+		unfilteredConfig.Format = ImageFormat::RGBA16F;
+		unfilteredConfig.Width = 1024;
+		unfilteredConfig.Height = 1024;
+		unfilteredConfig.GenerateMips = true;
+		auto unfilteredTex = TextureCube::Create(unfilteredConfig);
+		
+		auto compute = data.ShaderLibrary->Get("EquirectangularToCubeCompute");
+
+		compute->Bind();
+		inputTex->Bind(0);
+		glBindImageTexture(1, unfilteredTex->GetTextureHandle(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		DispatchCompute(unfilteredTex->GetWidth() / 32, unfilteredTex->GetHeight() / 32, 6);
+		unfilteredTex->GenerateMips();
+
+		const uint32_t cubemapResolution = 32;
+
+		// Compute irradiance map
+		TextureConfig irradianceConfig;
+		irradianceConfig.Format = ImageFormat::RGBA16F;
+		irradianceConfig.Width = cubemapResolution;
+		irradianceConfig.Height = cubemapResolution;
+		irradianceConfig.GenerateMips = true;
+		
+		auto irradianceTex = TextureCube::Create(irradianceConfig);
+
+		compute = data.ShaderLibrary->Get("IrradianceMapCompute");
+		compute->Bind();
+		unfilteredTex->Bind(0);
+		glBindImageTexture(1, irradianceTex->GetTextureHandle(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+		DispatchCompute(irradianceTex->GetWidth() / 32, irradianceTex->GetHeight() / 32, 6);
+
+		irradianceTex->GenerateMips();
+
+		// Compute radiance map at each mip level
+		TextureConfig radianceConfig;
+		radianceConfig.Format = ImageFormat::RGBA16F;
+		radianceConfig.Width = cubemapResolution;
+		radianceConfig.Height = cubemapResolution;
+		radianceConfig.GenerateMips = true;
+
+		auto radianceTex = TextureCube::Create(radianceConfig);
+
+		compute = data.ShaderLibrary->Get("RadianceMapCompute");
+
+		const uint32_t numMipLevels = radianceTex->GetNumMipLevels();
+		const float deltaRoughness = 1.0f / (numMipLevels - 1.0f);
+
+		compute->Bind();
+		unfilteredTex->Bind(0);
+
+		for (uint32_t i = 0, size = cubemapResolution; i < numMipLevels; i++, size = size / 2) {
+
+			uint32_t groupCount = glm::max(1u, size / 32);
+			float roughness = i * deltaRoughness;
+			roughness = glm::max(roughness, 0.05f);	
+
+			glBindImageTexture(1, radianceTex->GetTextureHandle(), i, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
+			compute->SetUniform("u_Roughness", roughness);
+
+			DispatchCompute(groupCount, groupCount, 6);
+		}
+		
+		Environment env;
+		env.UnfilteredMap = unfilteredTex;
+		env.RadianceMap = radianceTex;
+		env.IrradianceMap = irradianceTex;
+		return env;
+		
+	}
 
 	void Renderer::SetSkyboxTexture(std::shared_ptr<TextureCube> texture) {
 
-		//s_Data->SkyboxTexture = texture;
+		s_Data->SceneData.SkyboxMaterial->Set("u_Skybox", texture);
+	}
 
-		s_Data->SkyboxMaterial->Set("u_Skybox", texture);
+	void Renderer::SetEnvironment(const Environment environment) {
+
+		auto& sceneData = s_Data->SceneData;
+
+		sceneData.Enviroment = environment;
+		sceneData.EnviromentMaterial->Set("u_EnvIrradianceTexture", environment.IrradianceMap);
+		sceneData.EnviromentMaterial->Set("u_EnvRadianceTexture", environment.RadianceMap);
 	}
 
 	std::shared_ptr<ShaderLibrary> Renderer::GetShaderLibrary() {
@@ -336,6 +589,11 @@ namespace soso {
 		return s_Data->WhiteTexture;
 	}
 
+	uint32_t Renderer::GetCurrentFrameIndex() {
+
+		return Application::Get().GetCurrentFrameIndex();
+	}
+
 	void Renderer::OnWindowResize(uint32_t width, uint32_t height) {
 
 		s_RendererAPI->SetViewport(0, 0, width, height);
@@ -351,29 +609,46 @@ namespace soso {
 
 	void Renderer::ImGuiRendererDebug() {
 
+		SS_PROFILE_FUNCTION();
+
 		auto& frameData = s_Data->FrameData;
 
 		static bool showShadowMap = false;
 
-		ImGui::Begin("Renderer");
+		ImGui::Begin("Renderer Settings");
 		{
-			ImGui::BeginChild("Lighting");
+
+			// --- Render Passes ---
+			if (ImGui::CollapsingHeader("Render Passes"))
 			{
-
-				ImGui::SliderFloat3("Direction", &frameData.DirLightUBData.Direction[0], -1.0f, 1.0f);
-				static float ambiant = 1.0f;
-				ImGui::SliderFloat("Ambient", &ambiant, 0.0f, 5.0f);
-				frameData.DirLightUBData.Ambient = glm::vec4(glm::vec3(ambiant), 1.0);
-				ImGui::SliderFloat3("Diffuse", &frameData.DirLightUBData.Diffuse[0], 0.0f, 1.0f);
-				ImGui::SliderFloat3("Specular", &frameData.DirLightUBData.Specular[0], 0.0f, 1.0f);
-
-				ImGui::Separator();
-				UI::ToggleSwitch("View Shadow Map", &showShadowMap);
+				UI::ToggleSwitch("Shadow Pass", &s_RendererSettings.ShadowPass);
+				UI::ToggleSwitch("Skybox Pass", &s_RendererSettings.SkyboxPass);
+				UI::ToggleSwitch("Mesh Wireframe Pass", &s_RendererSettings.WirePass);
 			}
-			ImGui::EndChild();
+
+			// ---- Directional Light ----
+			if (ImGui::CollapsingHeader("Directional Light", ImGuiTreeNodeFlags_DefaultOpen))
+			{
+				ImGui::SliderFloat3("Direction", &frameData.DirLightUBData.Direction.x, -1.0f, 1.0f);
+				ImGui::SliderFloat("Intensity", &frameData.DirLightUBData.Intensity.x, 0.0f, 5.0f);
+				frameData.DirLightUBData.Intensity = glm::vec4(glm::vec3(frameData.DirLightUBData.Intensity.x), 1.0f);
+				ImGui::SliderFloat("Ambient", &frameData.DirLightUBData.AmbiantFactor.x, 0.0f, 5.0f);
+				frameData.DirLightUBData.AmbiantFactor = glm::vec4(glm::vec3(frameData.DirLightUBData.AmbiantFactor.x), 1.0f);
+			}
+
+			// ---- Shadow Map ----
+			if (ImGui::CollapsingHeader("Shadow Map Settings"))
+			{
+				UI::ToggleSwitch("View Shadow Map", &showShadowMap);
+				ImGui::SliderFloat("Shadow Frustum Bounds", &s_RendererSettings.ShadowFrustumBounds, 1.0f, 100.0f);
+				ImGui::SliderFloat("Shadow Near Plane", &s_RendererSettings.ShadowNearPlane, 0.001f, 15.0f);
+				ImGui::SliderFloat("Shadow Far Plane", &s_RendererSettings.ShadowFarPlane, 1.0f, 400.0f);
+				ImGui::SliderFloat("Shadow Eye Factor", &s_RendererSettings.ShadowEyeFactor, 1.0f, 200.0f);
+			}
 
 		}
 		ImGui::End();
+
 		
 		if (showShadowMap) {
 

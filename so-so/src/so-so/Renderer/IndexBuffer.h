@@ -1,6 +1,6 @@
 #pragma once
 
-#include <memory>
+#include "so-so/Core/Core.h"
 
 namespace soso {
 
@@ -17,6 +17,6 @@ namespace soso {
 		virtual uint32_t GetCount() const = 0;
 
 		static std::shared_ptr<IndexBuffer> Create(uint32_t size);
-		static std::shared_ptr<IndexBuffer> Create(void* indices, uint32_t size);
+		static std::shared_ptr<IndexBuffer> Create(const void* indices, uint32_t size);
 	};
 }

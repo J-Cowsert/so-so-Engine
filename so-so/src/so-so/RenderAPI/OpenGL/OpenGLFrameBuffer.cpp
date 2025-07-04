@@ -9,24 +9,29 @@ namespace soso {
 
 	namespace Utils {
 
-		static GLenum SosoFrameBufferTextureFormatToGL(FrameBufferTextureFormat format) {
+		static GLenum SosoImageFormatToGL(ImageFormat format) {
 			
 			switch (format) {
-			
-				case FrameBufferTextureFormat::RGBA8:       return GL_RGBA8;
-				case FrameBufferTextureFormat::RED_INTEGER: return GL_RED_INTEGER;
+			case ImageFormat::R8:      return GL_R8;      // Single-channel
+			case ImageFormat::RGB8:    return GL_SRGB8;
+			case ImageFormat::RGBA8:   return GL_RGBA8;   // Linear RGBA
+			case ImageFormat::RGBA16F: return GL_RGBA16F; // Floating-point RGBA
+			case ImageFormat::RGBA32F: return GL_RGBA32F;
+
+			case ImageFormat::SRGB:    return GL_SRGB8;
+			case ImageFormat::SRGBA:   return GL_SRGB8_ALPHA8;
 			}
 
 			SS_CORE_ASSERT(false, "");
 			return 0;
 		}
 
-		static bool IsDepthFormat(FrameBufferTextureFormat format) {
+		static bool IsDepthFormat(ImageFormat format) {
 			
 			switch (format) {
 
-			case FrameBufferTextureFormat::DEPTH24STENCIL8:
-			case FrameBufferTextureFormat::DEPTH32F: return true;
+				case ImageFormat::DEPTH24STENCIL8:
+				case ImageFormat::DEPTH32F: return true;
 			}
 
 			return false;
@@ -53,7 +58,7 @@ namespace soso {
 			}
 			else {
 
-				glTexImage2D(GL_TEXTURE_2D, 0, internalFormat, width, height, 0, format, GL_UNSIGNED_INT, nullptr);
+				glTexStorage2D(GL_TEXTURE_2D, 1, internalFormat, width, height);
 				
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
 				glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
@@ -93,7 +98,7 @@ namespace soso {
 	{
 		for (auto& textureConfig : m_Config.Attachments.Attachments) {
 
-			if (!Utils::IsDepthFormat(textureConfig.TextureFormat))
+			if (!Utils::IsDepthFormat(textureConfig.ImageFormat))
 				m_ColorAttachmentConfigs.emplace_back(textureConfig);
 			else
 				m_DepthAttachmentConfig = textureConfig;
@@ -134,31 +139,35 @@ namespace soso {
 
 				Utils::BindTexture(multisample, m_ColorAttachments[i]);
 
-				switch (m_ColorAttachmentConfigs[i].TextureFormat) {
+				switch (m_ColorAttachmentConfigs[i].ImageFormat) {
 
-					case FrameBufferTextureFormat::RGBA8:
+					case ImageFormat::RGBA8:
 						Utils::AttachColorTexture(m_ColorAttachments[i], m_Config.Samples, GL_RGBA8, GL_RGBA, m_Config.Width, m_Config.Height, i);
 						break;
 
-					case FrameBufferTextureFormat::RED_INTEGER:
+					case ImageFormat::RGBA32F: 
+						Utils::AttachColorTexture(m_ColorAttachments[i], m_Config.Samples, GL_RGBA32F, GL_RGBA, m_Config.Width, m_Config.Height, i);
+						break;
+
+					case ImageFormat::RED_INTEGER:
 						Utils::AttachColorTexture(m_ColorAttachments[i], m_Config.Samples, GL_R32I, GL_RED_INTEGER, m_Config.Width, m_Config.Height, i);
 						break;
 				}
 			}
 		}
 
-		if (m_DepthAttachmentConfig.TextureFormat != FrameBufferTextureFormat::None) {
+		if (m_DepthAttachmentConfig.ImageFormat != ImageFormat::None) {
 
 			Utils::CreateTextures(multisample, &m_DepthAttachment, 1);
 			Utils::BindTexture(multisample, m_DepthAttachment);
 
-			switch (m_DepthAttachmentConfig.TextureFormat) {
+			switch (m_DepthAttachmentConfig.ImageFormat) {
 
-				case FrameBufferTextureFormat::DEPTH24STENCIL8:
+				case ImageFormat::DEPTH24STENCIL8:
 					Utils::AttachDepthTexture(m_DepthAttachment, m_Config.Samples, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL_ATTACHMENT, m_Config.Width, m_Config.Height);
 					break;
 
-				case FrameBufferTextureFormat::DEPTH32F:
+				case ImageFormat::DEPTH32F:
 					Utils::AttachDepthTexture(m_DepthAttachment, m_Config.Samples, GL_DEPTH_COMPONENT32F, GL_DEPTH_ATTACHMENT, m_Config.Width, m_Config.Height);
 					break;
 			}
@@ -219,6 +228,6 @@ namespace soso {
 		SS_CORE_ASSERT(attachmentIndex < m_ColorAttachments.size(), "");
 
 		auto& config = m_ColorAttachmentConfigs[attachmentIndex];
-		glClearTexImage(m_ColorAttachments[attachmentIndex], 0, Utils::SosoFrameBufferTextureFormatToGL(config.TextureFormat), GL_INT, &value);
+		glClearTexImage(m_ColorAttachments[attachmentIndex], 0, Utils::SosoImageFormatToGL(config.ImageFormat), GL_INT, &value);
 	}
 }

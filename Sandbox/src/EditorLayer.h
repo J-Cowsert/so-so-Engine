@@ -1,8 +1,11 @@
-#pragma once
+﻿#pragma once
+
+#include <soso.h>
+#include "so-so/Core/Profiler.h"
 
 #include "Misc/ShaderEditor.h"
 
-#include <soso.h>
+#include <imgui.h>
 
 // Temporary Editor
 
@@ -46,6 +49,8 @@ public:
 
 	void OnImGuiRender() override {
 		
+		SS_PROFILE_FUNCTION();
+
 		static bool dockspaceOpen = true;
 		static bool opt_fullscreen_persistant = true;
 		bool opt_fullscreen = opt_fullscreen_persistant;
@@ -130,7 +135,9 @@ public:
 			ImVec2 viewportPanelSize = ImGui::GetContentRegionAvail();
 			if (m_ViewportSize != *((glm::vec2*)&viewportPanelSize)) 
 			{
-				m_FrameBuffer->Resize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
+				//m_FrameBuffer->Resize((uint32_t)viewportPanelSize.x, (uint32_t)viewportPanelSize.y);
+				
+				//soso::Renderer::OnWindowResize(viewportPanelSize.x, viewportPanelSize.y);
 				m_ViewportSize = { viewportPanelSize.x, viewportPanelSize.y };
 			}
 
@@ -164,4 +171,7 @@ private:
 	bool m_ShowMetricsTool = false;
 	bool m_ShowStackTool = false;
 	bool m_ShowShaderEditorTool = true;
+	
+protected:
+	bool m_ShowEditor = true;
 };

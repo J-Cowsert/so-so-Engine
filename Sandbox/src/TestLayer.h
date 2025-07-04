@@ -1,10 +1,12 @@
 #pragma once
 #include <soso.h>
 
-#include "so-so/Core/Timer.h"
+#include "so-so/Core/Profiler.h"
 #include "so-so/ImGui/ImGuiWidgets.h"
 
+
 #include "Misc/Terrain.h"
+#include "Misc/VectorField.h"
 
 #include "glm/ext.hpp"
 #include "imgui.h"
@@ -27,24 +29,19 @@ public:
 		m_Camera = soso::SceneCamera(80.0, width, height, 0.1f, 10000.0f);
 		m_ShaderLibrary = soso::Renderer::GetShaderLibrary();
 
-		m_TexCube = soso::TextureImporter::LoadTextureCube({
-			"assets/textures/Skybox/skybox/right.jpg",
-			"assets/textures/Skybox/skybox/left.jpg",
-			"assets/textures/Skybox/skybox/top.jpg",
-			"assets/textures/Skybox/skybox/bottom.jpg",
-			"assets/textures/Skybox/skybox/front.jpg",
-			"assets/textures/Skybox/skybox/back.jpg"
-			});
-		//m_Skybox = Skybox(m_TexCube);
+		std::filesystem::path path = "assets/textures/clear_puresky_2k.hdr";
+		m_Environment = soso::Renderer::CreateEnvironment(path);
 
-		soso::Renderer::SetSkyboxTexture(m_TexCube);
+		soso::Renderer::SetEnvironment(m_Environment);
+		soso::Renderer::SetSkyboxTexture(m_Environment.UnfilteredMap);
 
-		m_DefaultMesh = soso::Mesh::Create("assets/the_forgotten_knight/scene.gltf");
+		m_DefaultMesh = soso::Mesh::Create("assets/sponza/sponza.gltf");
+		//m_DefaultMesh->DumpBufferInfo();
 		m_DebugMaterial = soso::Material::Create(m_ShaderLibrary->Get("PBR"));
 
 		// Plane
 		{	
-			Entity& ent = m_Plane;
+			Entity& ent = m_PlaneEntity;
 
 			ent.Name = "Plane";
 
@@ -80,20 +77,41 @@ public:
 			overrideMaterial->Set("u_Material.Roughness", 0.5f);
 		}
 
+		// Vector Field
+		{
+			auto func = [](const glm::vec3& p) {
+				// strength of radial (inward) vs. tangential (swirl) components
+				const float radialStrength = 5.0f;
+				const float swirlStrength = 20.0f;
+
+				// 1) radial component
+				glm::vec3 radial = -p;
+
+				// 2) swirl component: pick an axis to rotate around (here we use Y)
+				//    swirl = (axis × position)
+				static const glm::vec3 axis(0.0f, 1.0f, 0.0f);
+				glm::vec3 swirl = glm::cross(axis, p);
+
+				// 3) combine
+				return radial * radialStrength + swirl * swirlStrength;
+			};
+
+			m_Field.GenerateGrid(10, 10, 10, 1.0f, func);
+		}
+
 		// Terrain
 		{
 			std::filesystem::path path = "assets/textures/jagged_slate_rock/Displacement.jpg";
 			m_Terrain = std::make_unique<Terrain>(path, 100.0f, 100);
 
-			Entity& ent = m_TerrainEnt;
+			Entity& ent = m_TerrainEntity;
 
 			ent.Mesh = m_Terrain->GetTerrainMesh();
 			ent.OverrideMaterial = m_DebugMaterial;
 		}
 
-		m_QTrans.Position = { 1, 1, 1 };
-
 		SetEntityGrid(0,0, m_DefaultMesh);
+
 	}
 
 	void OnUpdate(soso::Timestep ts) override {
@@ -108,13 +126,24 @@ public:
 			
 			for (auto&& ent : m_Entities) {
 				
-				if (ent.Render)
+				if (ent.Render) {
+
 					soso::Renderer::SubmitMesh(ent.Mesh, ent.Transform.GetMatrix(), ent.OverrideMaterial);
+
+					if (ent.RenderAABB) {
+
+						//soso::Renderer::SubmitAABB(ent.Mesh->GetBoundingBox(), ent.Transform.GetMatrix());
+						for (const auto& submesh : ent.Mesh->GetSubmeshes()) {
+
+							soso::Renderer::SubmitAABB(submesh.BoundingBox, submesh.LocalTransform, {1, 0, 0, 1});
+						}
+					}
+				}
 			}
-			
-			soso::Renderer::SubmitQuad(m_DebugMaterial, m_QTrans.GetMatrix());
+
 		}
 		soso::Renderer::EndScene();
+
 	}
 
 	void OnEvent(soso::Event& event) override {
@@ -129,8 +158,8 @@ public:
 		m_Entities.clear();
 		m_Entities.reserve(width * height);
 
-		m_Entities.emplace_back(m_Plane);
-		m_Entities.emplace_back(m_TerrainEnt);
+		m_Entities.emplace_back(m_PlaneEntity);
+		m_Entities.emplace_back(m_TerrainEntity);
 
 		for (uint32_t row = 0; row < height; row++) {
 
@@ -149,6 +178,28 @@ public:
 	}
 
 	void OnImGuiRender() override {
+
+		SS_PROFILE_FUNCTION();
+
+		ImGui::Begin("Environment");
+		{
+			if (ImGui::Button("View Unfiltered Map")) {
+
+				soso::Renderer::SetSkyboxTexture(m_Environment.UnfilteredMap);
+			}
+
+			if (ImGui::Button("View Radiance Map")) {
+
+				soso::Renderer::SetSkyboxTexture(m_Environment.RadianceMap);
+			}
+
+			if (ImGui::Button("View Irradiance Map")) {
+
+				soso::Renderer::SetSkyboxTexture(m_Environment.IrradianceMap);
+			}
+
+		}
+		ImGui::End();
 
 		ImGui::Begin("Entity Editor");
 		{
@@ -175,25 +226,23 @@ public:
 			static int selectedEntity = -1;
 			static bool dirtyMaterial = false;
 
-			std::string preview = (selectedEntity >= 0 && selectedEntity < m_Entities.size())
-				? std::format("Entity {}", selectedEntity)
-				: "Select Entity";
+			std::string preview = (selectedEntity >= 0 && selectedEntity < m_Entities.size()) ? std::format("Entity {}", selectedEntity) : "Select Entity";
 
 			if (ImGui::BeginCombo("Entities", preview.c_str())) {
 
 				for (int i = 0; i < (int)m_Entities.size(); ++i) {
 
-					bool is_selected = (selectedEntity == i);
+					bool selected = (selectedEntity == i);
 					std::string label = std::format("Entity {}", i);
 
-					if (ImGui::Selectable(label.c_str(), is_selected)) {
+					if (ImGui::Selectable(label.c_str(), selected)) {
 
 						selectedEntity = i;
 						dirtyMaterial = false;
 					}
 
 					// ensure focus on the selected item
-					if (is_selected)
+					if (selected)
 						ImGui::SetItemDefaultFocus();
 				}
 				ImGui::EndCombo();
@@ -209,7 +258,9 @@ public:
 				ImGui::Separator();
 
 				soso::UI::ToggleSwitch("Should Render", &e.Render);
-
+				if (e.Render) {
+					soso::UI::ToggleSwitch("Render AABB", &e.RenderAABB);
+				}
 
 
 				// Transform controls
@@ -282,8 +333,6 @@ public:
 				}
 			}
 
-			soso::UI::ToggleSwitch("Skybox", &m_RenderSkybox); // Skybox control
-
 			ImGui::Separator();
 
 		}
@@ -307,8 +356,10 @@ public:
 
 			ImGui::SameLine();
 			ImGui::TextUnformatted(
-				isPerspective ? "Perspective" : "Orthographic"
+				isPerspective ? "Perspective" : "Ortho"
 			);
+
+			ImGui::SliderFloat("Exposure", &m_Camera.GetExposure(), 0.01f, 5.0f);
 
 
 		}
@@ -326,6 +377,7 @@ public:
 			auto& renderStats = soso::Renderer::GetStats();
 			ImGui::Text("Draw Calls: %d", renderStats.DrawCalls);
 			ImGui::Text("Meshes: %d", renderStats.Meshes);
+			ImGui::Text("Line Count: %d", renderStats.LineCount);
 		}
 		ImGui::End();
 		ImGui::PopStyleVar();
@@ -333,7 +385,6 @@ public:
 
 		soso::Renderer::ImGuiRendererDebug();
 	}
-
 
 private:
 	struct Transform {
@@ -355,31 +406,32 @@ private:
 
 	struct Entity {
 
+		std::string Name;
+		Transform Transform{};
 		std::shared_ptr<soso::Mesh> Mesh;
 		std::shared_ptr<soso::Material> OverrideMaterial = nullptr;
-		Transform Transform{};
 		
-		std::string Name;
-		bool Render = true;
+		bool Render = false;
+		bool RenderAABB = false;
 	};
 
 private:
 	std::vector<Entity> m_Entities;
-	Entity m_Plane;
-	Entity m_TerrainEnt;
+	Entity m_PlaneEntity;
+	Entity m_TerrainEntity;
 
 private:
 	std::shared_ptr<soso::Material> m_DebugMaterial = nullptr;
 	std::shared_ptr<soso::Mesh> m_DefaultMesh;
 	std::shared_ptr<soso::TextureCube> m_TexCube;
+	std::shared_ptr<soso::Texture2D> m_TestingTexture;
+
 
 	std::unique_ptr<Terrain> m_Terrain;
-
-	Transform m_QTrans{};
+	soso::Environment m_Environment;
+	VectorField m_Field;
 	
-	bool m_RenderSkybox = true;
-	
-	//---------------------------------------------
+private:
 	soso::Timestep m_FrameTime;
 	float m_TotalTime = 0.0f;
 	std::shared_ptr<soso::ShaderLibrary> m_ShaderLibrary;

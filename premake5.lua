@@ -31,6 +31,7 @@ Outputdir = "%{cfg.buildcfg}-%{cfg.system}-%{cfg.architecture}"
 include "so-so/vendor/GLFW"
 include "so-so/vendor/Glad"
 include "so-so/vendor/imgui"
+include "so-so/vendor/tracy"  
 
 project "so-so"
 	kind "StaticLib"
@@ -55,6 +56,7 @@ project "so-so"
 
 		"%{prj.name}/vendor/spirv-cross/**.hpp", 
 		"%{prj.name}/vendor/spirv-cross/**.cpp", 
+
 	}
 	
 	includedirs
@@ -73,6 +75,8 @@ project "so-so"
 
 		"%{prj.name}/vendor/shaderc/include",
         "%{prj.name}/vendor/spirv-cross",
+
+        "%{prj.name}/vendor/tracy/tracy/public/tracy",
 	}
 
 	links 
@@ -82,6 +86,7 @@ project "so-so"
 		"imgui",
 		"opengl32.lib",
 		"dwmapi.lib",
+		"Tracy"
 	}
 
 	filter "system:windows"
@@ -91,8 +96,14 @@ project "so-so"
 		defines 
 		{
 			"SS_PLATFORM_WINDOWS",
-			"GLFW_INCLUDE_NONE"
+			"GLFW_INCLUDE_NONE",
+
+			"TRACY_ENABLE",
+			"TRACY_ON_DEMAND",
+			"TRACY_CALLSTACK=10",
 		}
+
+		links { "Ws2_32", "Dbghelp" }
 
 	filter "system:linux"
 
@@ -149,6 +160,10 @@ project "Sandbox"
         "so-so/vendor/imgui",
         "so-so/vendor/glm",
         "so-so/vendor/stb_image",
+
+        "so-so/vendor/tracy/tracy/public/tracy",
+
+        "%{wks.location}/so-so/vendor/tracy/tracy/public/tracy",
     }
 
 	links 

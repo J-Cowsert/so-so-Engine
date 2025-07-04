@@ -6,6 +6,8 @@
 #include "so-so/Events/KeyEvent.h"
 #include "so-so/Events/MouseEvent.h"
 
+#include "Profiler.h"
+
 // TODO: Make this api agnostic. We shouldnt be using OpenGLContext directly
 #include "so-so/RenderAPI/OpenGL/OpenGLContext.h"
 
@@ -30,6 +32,8 @@ namespace soso {
 	}
 
 	void Window::Init(const WindowConfig& config) {
+
+		SS_PROFILE_FUNCTION();
 
 		m_Data.Title = config.Title;
 		m_Data.Width = config.Width;
@@ -169,6 +173,9 @@ namespace soso {
 	}
 
 	void Window::OnUpdate() {
+
+		SS_PROFILE_FUNCTION();
+
 		glfwPollEvents();
 		m_Context->SwapBuffers();
 	}

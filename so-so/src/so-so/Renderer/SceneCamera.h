@@ -31,11 +31,11 @@ namespace soso {
 
 		void SetCameraProjectionMode(CameraProjectionMode mode );
 		
-		inline CameraControlMode GetCameraControlMode() const { return m_ControlMode; }
-		inline CameraProjectionMode GetCameraProjectionMode() const { return m_ProjectionMode; }
+		CameraControlMode GetCameraControlMode() const { return m_ControlMode; }
+		CameraProjectionMode GetCameraProjectionMode() const { return m_ProjectionMode; }
 
-		inline float GetDistance() const { return m_Distance; }
-		inline void SetDistance(float distance) { m_Distance = distance; }
+		float GetDistance() const { return m_Distance; }
+		void SetDistance(float distance) { m_Distance = distance; }
 
 		const glm::vec3& GetFocalPoint() const { return m_FocalPoint; }
 
@@ -52,13 +52,14 @@ namespace soso {
 
 		glm::quat GetOrientation() const;
 
-		[[nodiscard]] float GetVerticalFOV() const { return m_VerticalFOV; }
-		[[nodiscard]] float GetAspectRatio() const { return m_AspectRatio; }
-		[[nodiscard]] float GetNearClip() const { return m_NearClip; }
-		[[nodiscard]] float GetFarClip() const { return m_FarClip; }
-		[[nodiscard]] float GetPitch() const { return m_Pitch; }
-		[[nodiscard]] float GetYaw() const { return m_Yaw; }
-		[[nodiscard]] float GetCameraSpeed() const;
+		float GetVerticalFOV() const { return m_VerticalFOV; }
+		float GetAspectRatio() const { return m_AspectRatio; }
+		float GetNearClip() const { return m_NearClip; }
+		float GetFarClip() const { return m_FarClip; }
+		float GetPitch() const { return m_Pitch; }
+		float GetYaw() const { return m_Yaw; }
+		float GetCameraSpeed() const;
+
 	private:
 		void UpdateCameraView();
 
@@ -83,10 +84,10 @@ namespace soso {
 		glm::vec3 m_Position, m_Direction, m_FocalPoint;
 
 		// Projection params
-		float m_VerticalFOV, m_AspectRatio, m_NearClip, m_FarClip;
+		float m_VerticalFOV = 0, m_AspectRatio = 0, m_NearClip = 0, m_FarClip = 0;
 
 		bool m_IsActive = false;
-		bool m_Panning, m_Rotating;
+		bool m_Panning = false, m_Rotating = false;
 
 		glm::vec2 m_InitialMousePosition{};
 		glm::vec3 m_InitialFocalPoint, m_InitialRotation;
@@ -99,10 +100,9 @@ namespace soso {
 		glm::vec3 m_PositionDelta{};
 		glm::vec3 m_RightDirection{};
 
-
 		float m_MinFocusDistance{ 100.0f };
 
-		uint32_t m_ViewportWidth{ 1280 }, m_ViewportHeight{ 720 };
+		uint32_t m_ViewportWidth{ 1920 }, m_ViewportHeight{ 1080 };
 
 		constexpr static float MIN_SPEED{ 0.0005f }, MAX_SPEED{ 2.0f };
 	};

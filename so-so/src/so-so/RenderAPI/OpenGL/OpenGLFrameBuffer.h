@@ -4,6 +4,7 @@
 
 namespace soso {
 
+	// TODO: Needs a rewrite
 	class OpenGLFrameBuffer : public FrameBuffer {
 	public:
 		OpenGLFrameBuffer(const FrameBufferConfig& config);
@@ -19,9 +20,7 @@ namespace soso {
 
 		void ClearAttachment(uint32_t attachmentIndex, int value) override;
 
-		uint32_t GetColorAttachmentRendererID(uint32_t index = 0) const override { 
-			SS_CORE_ASSERT(index < m_ColorAttachments.size(), "index < m_ColorAttachments.size()"); return m_ColorAttachments[index]; }
-
+		uint32_t GetColorAttachmentRendererID(uint32_t index = 0) const override { return m_ColorAttachments[index]; }
 		uint32_t GetDepthAttachmentRendererID() const override { return m_DepthAttachment; }
 
 		const FrameBufferConfig& GetConfig() const override { return m_Config; }
@@ -31,7 +30,7 @@ namespace soso {
 		FrameBufferConfig m_Config;
 
 		std::vector<FrameBufferTextureConfig> m_ColorAttachmentConfigs;
-		FrameBufferTextureConfig m_DepthAttachmentConfig = FrameBufferTextureFormat::None;
+		FrameBufferTextureConfig m_DepthAttachmentConfig = { ImageFormat::None };
 
 		uint32_t m_DepthAttachment = 0;
 		std::vector<uint32_t> m_ColorAttachments;
