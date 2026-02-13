@@ -21,6 +21,20 @@
 namespace soso {
 
 	static RendererAPI* s_RendererAPI = nullptr;
+	
+	struct RendererSettings {
+		
+		bool SkyboxPass = true;
+
+		bool ShadowPass = false;
+		bool WirePass = false;
+
+		float ShadowFrustumBounds = 50.0f;
+		float ShadowNearPlane = 0.001f, ShadowFarPlane = 50.0f;
+		float ShadowEyeFactor = 20.0f;
+	};
+	
+	inline static RendererSettings s_RendererSettings;
 
 	void Renderer::Init() {
 
@@ -54,26 +68,26 @@ namespace soso {
 		data.CompositeFrameBuffer = FrameBuffer::Create(compositeConfig);
 
 		// Load shaders
-		data.ShaderLibrary = std::make_shared<ShaderLibrary>();
-		data.ShaderLibrary->Load("Resources/Shader/PBR.glsl");
-		data.ShaderLibrary->Load("Resources/Shader/Debug.glsl");
-		data.ShaderLibrary->Load("Resources/Shader/MeshWireframe.glsl");
-		data.ShaderLibrary->Load("Resources/Shader/Skybox.glsl");
-		data.ShaderLibrary->Load("Resources/Shader/FSQuad.glsl");
-		data.ShaderLibrary->Load("Resources/Shader/DirectionalShadowMap.glsl");
-		data.ShaderLibrary->Load("Resources/Shader/Line.glsl");
-		data.ShaderLibrary->Load("Resources/Shader/PostProcess.glsl");
+		data.ShaderLib = std::make_shared<ShaderLibrary>();
+		data.ShaderLib->Load("Resources/Shader/PBR.glsl");
+		data.ShaderLib->Load("Resources/Shader/Debug.glsl");
+		data.ShaderLib->Load("Resources/Shader/MeshWireframe.glsl");
+		data.ShaderLib->Load("Resources/Shader/Skybox.glsl");
+		data.ShaderLib->Load("Resources/Shader/FSQuad.glsl");
+		data.ShaderLib->Load("Resources/Shader/DirectionalShadowMap.glsl");
+		data.ShaderLib->Load("Resources/Shader/Line.glsl");
+		data.ShaderLib->Load("Resources/Shader/PostProcess.glsl");
 
-		data.ShaderLibrary->Load("Resources/Shader/EquirectangularToCubeCompute.glsl");
-		data.ShaderLibrary->Load("Resources/Shader/IrradianceMapCompute.glsl");
-		data.ShaderLibrary->Load("Resources/Shader/RadianceMapCompute.glsl");
+		data.ShaderLib->Load("Resources/Shader/EquirectangularToCubeCompute.glsl");
+		data.ShaderLib->Load("Resources/Shader/IrradianceMapCompute.glsl");
+		data.ShaderLib->Load("Resources/Shader/RadianceMapCompute.glsl");
 
-		data.ShadowMapShader = data.ShaderLibrary->Get("DirectionalShadowMap");
-		data.FinalPassShader = data.ShaderLibrary->Get("PostProcess");
+		data.ShadowMapShader = data.ShaderLib->Get("DirectionalShadowMap");
+		data.FinalPassShader = data.ShaderLib->Get("PostProcess");
 
 		data.FinalPassMaterial = Material::Create(data.FinalPassShader, "Uniform", "FinalPass");
-		data.SceneData.EnviromentMaterial = Material::Create(data.ShaderLibrary->Get("PBR"));
-		data.SceneData.SkyboxMaterial = Material::Create(data.ShaderLibrary->Get("Skybox"));
+		data.SceneData.EnviromentMaterial = Material::Create(data.ShaderLib->Get("PBR"));
+		data.SceneData.SkyboxMaterial = Material::Create(data.ShaderLib->Get("Skybox"));
 
 
 		// Create default white texture
@@ -193,7 +207,7 @@ namespace soso {
 		s_PrimitiveData->LineVertexBufferBasePtr = std::make_unique<LineVertex[]>(s_PrimitiveData->c_MaxLineCount * 2);
 		s_PrimitiveData->LineVertexBufferCurrentPtr = s_PrimitiveData->LineVertexBufferBasePtr.get();
 
-		s_PrimitiveData->LineShader = data.ShaderLibrary->Get("Line");
+		s_PrimitiveData->LineShader = data.ShaderLib->Get("Line");
 
 	}
 
@@ -221,7 +235,7 @@ namespace soso {
 		auto& data = *s_Data;
 		auto& frameData = data.FrameData;
 		auto& lightData = frameData.DirLightUBData;
-		auto& cameraData = frameData.CameraUBData;
+		auto& cameraData = frameData.CamUBData;
 		auto& dirShadowData = frameData.DirShadowMapUBData;
 
 		cameraData.ViewProjection = camera.GetViewProjection();
@@ -278,7 +292,7 @@ namespace soso {
 		
 		SS_PROFILE_FUNCTION();
 
-		auto&& shader = (material) ? material->GetShader() : s_Data->ShaderLibrary->Get("FSQuad");
+		auto&& shader = (material) ? material->GetShader() : s_Data->ShaderLib->Get("FSQuad");
 		shader->Bind();
 		
 		if (material) 
@@ -293,20 +307,15 @@ namespace soso {
 
 		SS_PROFILE_FUNCTION();
 
-		// TODO: culling
+		// TODO: batching, culling, etc
 
-		//DrawCommand& command = s_Data->DrawList.emplace_back();
-		//command.Mesh = mesh;
-		//command.Transform = transform;
-		//command.MaterialOverride = materialOverride;
-		//
-		//s_Stats.DrawCalls += (uint32_t)mesh->m_Submeshes.size();
-		//s_Stats.Meshes++;
+		DrawCommand& command = s_Data->DrawList.emplace_back();
+		command.pMesh = mesh.get();
+		command.Transform = transform;
+		command.pMaterialOverride = materialOverride.get();
 
-		for (const auto& submesh : mesh->GetSubmeshes()) {
-
-
-		}
+		s_Stats.DrawCalls += (uint32_t)mesh->GetSubmeshes().size();
+		s_Stats.Meshes++;
 	}
 
 	void Renderer::SubmitQuad(std::shared_ptr<Material> material, const glm::mat4& transform) {
@@ -412,7 +421,7 @@ namespace soso {
 
 			for (auto& dc : data.DrawList) {
 
-				s_RendererAPI->DrawMesh(dc.Mesh, transformUB, dc.Transform, dc.MaterialOverride, shadowMapShader);
+				s_RendererAPI->DrawMesh(dc.pMesh, transformUB, dc.Transform, dc.pMaterialOverride, shadowMapShader);
 			}
 
 			data.ShadowPassFrameBuffer->Unbind();
@@ -439,7 +448,7 @@ namespace soso {
 				glBindTextureUnit(7, s_RendererSettings.ShadowPass ? data.ShadowPassFrameBuffer->GetDepthAttachmentRendererID() : data.WhiteTexture->GetTextureHandle());
 				data.SceneData.EnviromentMaterial->Bind();
 				for (auto& dc : data.DrawList) {
-					s_RendererAPI->DrawMesh(dc.Mesh, transformUB, dc.Transform, dc.MaterialOverride);
+					s_RendererAPI->DrawMesh(dc.pMesh, transformUB, dc.Transform, dc.pMaterialOverride);
 				}
 			}
 
@@ -452,7 +461,7 @@ namespace soso {
 
 				for (auto& dc : data.DrawList) {
 
-					s_RendererAPI->DrawMesh(dc.Mesh, transformUB, dc.Transform, dc.MaterialOverride, data.ShaderLibrary->Get("MeshWireframe").get());
+					s_RendererAPI->DrawMesh(dc.pMesh, transformUB, dc.Transform, dc.pMaterialOverride, data.ShaderLib->Get("MeshWireframe").get());
 				}
 			}
 
@@ -496,7 +505,7 @@ namespace soso {
 		unfilteredConfig.GenerateMips = true;
 		auto unfilteredTex = TextureCube::Create(unfilteredConfig);
 		
-		auto compute = data.ShaderLibrary->Get("EquirectangularToCubeCompute");
+		auto compute = data.ShaderLib->Get("EquirectangularToCubeCompute");
 
 		compute->Bind();
 		inputTex->Bind(0);
@@ -515,7 +524,7 @@ namespace soso {
 		
 		auto irradianceTex = TextureCube::Create(irradianceConfig);
 
-		compute = data.ShaderLibrary->Get("IrradianceMapCompute");
+		compute = data.ShaderLib->Get("IrradianceMapCompute");
 		compute->Bind();
 		unfilteredTex->Bind(0);
 		glBindImageTexture(1, irradianceTex->GetTextureHandle(), 0, GL_TRUE, 0, GL_WRITE_ONLY, GL_RGBA16F);
@@ -532,7 +541,7 @@ namespace soso {
 
 		auto radianceTex = TextureCube::Create(radianceConfig);
 
-		compute = data.ShaderLibrary->Get("RadianceMapCompute");
+		compute = data.ShaderLib->Get("RadianceMapCompute");
 
 		const uint32_t numMipLevels = radianceTex->GetNumMipLevels();
 		const float deltaRoughness = 1.0f / (numMipLevels - 1.0f);
@@ -576,7 +585,7 @@ namespace soso {
 
 	std::shared_ptr<ShaderLibrary> Renderer::GetShaderLibrary() {
 
-		return s_Data->ShaderLibrary;
+		return s_Data->ShaderLib;
 	}
 
 	std::shared_ptr<FrameBuffer> Renderer::GetCompositeFrameBuffer() {

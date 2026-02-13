@@ -137,6 +137,12 @@ namespace soso {
 		SS_PROFILE_FUNCTION();
 
 		const auto& materials = mesh->m_Materials;
+
+		if (materials.empty()) {
+			SS_CORE_ERROR("DrawMesh: Mesh has no materials!");
+			return;
+		}
+
 		const auto shader = (shaderOverride) ? shaderOverride : materials[0]->GetShader().get(); // All meshes are pbr
 
 		const Material* lastUsedMat = nullptr; // Tracks last bound material to skip redundant Bind calls
@@ -145,7 +151,13 @@ namespace soso {
 
 		for (auto&& submesh : mesh->m_Submeshes) {
 			SS_PROFILE_SCOPE("Loop");
-		
+
+			if (!materialOverride && submesh.MaterialIndex >= materials.size()) {
+				SS_CORE_ERROR("DrawMesh: Submesh MaterialIndex {} out of bounds (materials size: {})",
+					submesh.MaterialIndex, materials.size());
+				continue;
+			}
+
 			auto material = (materialOverride) ? materialOverride : materials[submesh.MaterialIndex].get();
 
 			if (material != lastUsedMat) { material->Bind(); lastUsedMat = material; }

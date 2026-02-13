@@ -120,22 +120,22 @@ namespace soso {
 
 		struct DrawCommand {
 
-			Mesh* Mesh;
-			Material* MaterialOverride;
+			Mesh* pMesh;
+			Material* pMaterialOverride;
 			glm::mat4 Transform;
 			uint32_t SubmeshIndex;
 		};
 
-		struct SceneData {
+		struct PerSceneData {
 
 			Environment Enviroment;
 			std::shared_ptr<Material> EnviromentMaterial;
 			std::shared_ptr<Material> SkyboxMaterial;
 		};
 
-		struct FrameData {
+		struct PerFrameData {
 
-			CameraUBData CameraUBData;
+			CameraUBData CamUBData;
 			DirectionalLightUBData DirLightUBData;
 			DirectionalShadowMapUBData DirShadowMapUBData;
 
@@ -149,12 +149,12 @@ namespace soso {
 
 		struct RendererData {
 
-			FrameData FrameData;
-			SceneData SceneData;
+			PerFrameData FrameData;
+			PerSceneData SceneData;
 			
 			std::vector<DrawCommand> DrawList;
 
-			std::shared_ptr<ShaderLibrary> ShaderLibrary;
+			std::shared_ptr<ShaderLibrary> ShaderLib;
 
 			std::shared_ptr<FrameBuffer> CompositeFrameBuffer;
 			std::shared_ptr<FrameBuffer> GeometryFrameBuffer;
@@ -218,7 +218,7 @@ private:
 			float ShadowEyeFactor = 20.0f;
 		};
 
-		inline static RendererSettings s_RendererSettings;
+		
 
 		inline static Statistics s_Stats;
 
