@@ -10,8 +10,7 @@
 #include "backends/imgui_impl_opengl3.h"
 
 
-//Temporary
-//#include <glad/glad.h>
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
 
 
