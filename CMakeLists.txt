@@ -152,7 +152,7 @@ set_target_properties(so-so PROPERTIES
 
 # Project: Sandbox
 add_executable(Sandbox)
-file(GLOB_RECURSE SANDBOX_SOURCES "Sandbox/src/**.h" "Sandbox/src/**.cpp")
+file(GLOB_RECURSE SANDBOX_SOURCES "sandbox/src/**.h" "sandbox/src/**.cpp")
 target_sources(Sandbox PRIVATE ${SANDBOX_SOURCES})
 
 file(GLOB SHADER_FILES "Resources/Shader/**.glsl")
@@ -160,7 +160,7 @@ set_source_files_properties(${SHADER_FILES} PROPERTIES HEADER_FILE_ONLY TRUE)
 target_sources(Sandbox PRIVATE ${SHADER_FILES})
 
 target_include_directories(Sandbox PRIVATE
-    "Sandbox/src"
+    "sandbox/src"
     "so-so/src"
     "so-so/vendor/spdlog/include"
     "so-so/vendor/GLFW/include"
@@ -196,7 +196,7 @@ if(WIN32)
             "$<$<OR:$<CONFIG:Release>,$<CONFIG:Dist>>:${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/lib/windows/Release/shaderc-shared-MD.dll>"
             "$<TARGET_FILE_DIR:Sandbox>"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/Sandbox/Resources"
+            "${CMAKE_SOURCE_DIR}/sandbox/Resources"
             "$<TARGET_FILE_DIR:Sandbox>/Resources"
         COMMENT "Copying DLLs and resources to output directory"
     )
@@ -218,10 +218,10 @@ elseif(UNIX AND NOT APPLE)
             "$<$<CONFIG:Debug>:${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/lib/linux/Debug/libshaderc_shared.so>$<$<OR:$<CONFIG:Release>,$<CONFIG:Dist>>:${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/lib/linux/Release/libshaderc_shared.so>"
             "$<TARGET_FILE_DIR:Sandbox>"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/Sandbox/Resources"
+            "${CMAKE_SOURCE_DIR}/sandbox/Resources"
             "$<TARGET_FILE_DIR:Sandbox>/Resources"
         COMMAND ${CMAKE_COMMAND} -E copy_directory
-            "${CMAKE_SOURCE_DIR}/Sandbox/assets"
+            "${CMAKE_SOURCE_DIR}/sandbox/assets"
             "$<TARGET_FILE_DIR:Sandbox>/assets"
         COMMENT "Copying shared libraries and resources to output directory"
     )
