@@ -24,18 +24,17 @@ public:
 		SS_INFO("Current working directory: {0}", std::filesystem::current_path().string());
 
 		float width = (float)soso::Application::Get().GetWindow().GetWidth(),
-              height = (float)soso::Application::Get().GetWindow().GetHeight();
+		height = (float)soso::Application::Get().GetWindow().GetHeight();
 
 		m_Camera = soso::SceneCamera(80.0, width, height, 0.1f, 10000.0f);
 		m_ShaderLibrary = soso::Renderer::GetShaderLibrary();
 
 		std::filesystem::path path = "assets/textures/clear_puresky_2k.hdr";
 		m_Environment = soso::Renderer::CreateEnvironment(path);
-
 		soso::Renderer::SetEnvironment(m_Environment);
 		soso::Renderer::SetSkyboxTexture(m_Environment.UnfilteredMap);
 
-		m_DefaultMesh = soso::Mesh::Create("assets/sponza/sponza.gltf");
+		m_DefaultMesh = soso::Mesh::Create("assets/Sponza/Sponza.gltf");
 		//m_DefaultMesh->DumpBufferInfo();
 		m_DebugMaterial = soso::Material::Create(m_ShaderLibrary->Get("PBR"));
 
@@ -47,9 +46,9 @@ public:
 
 			ent.Mesh = soso::MeshGenerator::GeneratePlane(1, 2);
 
-			ent.Transform.Position.y -= 1.8f;
-			ent.Transform.Scale.x *= 2;
-			ent.Transform.Scale.z *= 2;
+			ent.Trans.Position.y -= 1.8f;
+			ent.Trans.Scale.x *= 2;
+			ent.Trans.Scale.z *= 2;
 
 			ent.OverrideMaterial = m_DebugMaterial;
 
@@ -88,7 +87,7 @@ public:
 				glm::vec3 radial = -p;
 
 				// 2) swirl component: pick an axis to rotate around (here we use Y)
-				//    swirl = (axis × position)
+				//    swirl = (axis ï¿½ position)
 				static const glm::vec3 axis(0.0f, 1.0f, 0.0f);
 				glm::vec3 swirl = glm::cross(axis, p);
 
@@ -110,7 +109,7 @@ public:
 			ent.OverrideMaterial = m_DebugMaterial;
 		}
 
-		SetEntityGrid(0,0, m_DefaultMesh);
+		SetEntityGrid(1, 1, m_DefaultMesh); // Create 1x1 grid with Sponza mesh
 
 	}
 
@@ -128,7 +127,7 @@ public:
 				
 				if (ent.Render) {
 
-					soso::Renderer::SubmitMesh(ent.Mesh, ent.Transform.GetMatrix(), ent.OverrideMaterial);
+					soso::Renderer::SubmitMesh(ent.Mesh, ent.Trans.GetMatrix(), ent.OverrideMaterial);
 
 					if (ent.RenderAABB) {
 
@@ -171,8 +170,9 @@ public:
 
 				ent.Mesh = mesh;
 				ent.OverrideMaterial = overrideMaterial;
-				ent.Transform.Position.x = col * spacing;
-				ent.Transform.Position.z = row * spacing;
+				ent.Render = true;
+				ent.Trans.Position.x = col * spacing;
+				ent.Trans.Position.z = row * spacing;
 			}
 		}
 	}
@@ -264,16 +264,16 @@ public:
 
 
 				// Transform controls
-				ImGui::DragFloat3("Position", &e.Transform.Position.x, 0.1f);
-				ImGui::DragFloat3("Rotation", &e.Transform.Rotation.x, 1.0f, -360.0f, 360.0f, "%.1f°");
-				if (ImGui::DragFloat("Scale", &e.Transform.Scale.x, 0.01f, 15.0f)) {
+				ImGui::DragFloat3("Position", &e.Trans.Position.x, 0.1f);
+				ImGui::DragFloat3("Rotation", &e.Trans.Rotation.x, 1.0f, -360.0f, 360.0f, "%.1fï¿½");
+				if (ImGui::DragFloat("Scale", &e.Trans.Scale.x, 0.01f, 15.0f)) {
 
-					e.Transform.Scale.y = e.Transform.Scale.x;
-					e.Transform.Scale.z = e.Transform.Scale.x;
+					e.Trans.Scale.y = e.Trans.Scale.x;
+					e.Trans.Scale.z = e.Trans.Scale.x;
 				}
 
-				if (ImGui::Button("Reset Transform"))
-					e.Transform = Transform();
+				if (ImGui::Button("Reset Trans"))
+					e.Trans = Transform();
 				
 				ImGui::NewLine();
 				ImGui::Separator();
@@ -407,7 +407,7 @@ private:
 	struct Entity {
 
 		std::string Name;
-		Transform Transform{};
+		Transform Trans{};
 		std::shared_ptr<soso::Mesh> Mesh;
 		std::shared_ptr<soso::Material> OverrideMaterial = nullptr;
 		

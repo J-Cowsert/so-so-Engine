@@ -1,6 +1,7 @@
-﻿
+
 // https://github.com/KhronosGroup/SPIRV-Cross/wiki/Reflection-API-user-guide
 #include "sspch.h"
+
 #include "OpenGLShader.h"
 
 #include "so-so/Renderer/UniformBuffer.h"
@@ -18,9 +19,9 @@
 
 #include <fstream>
 
-#include <Glad/glad.h>
+#include <glad/glad.h>
 
-#define SHADER_DEBUG_LOG true // Toggle for debug logging
+#define SHADER_DEBUG_LOG false // Toggle for debug logging
 
 #if SHADER_DEBUG_LOG
 	#define SHADER_DEBUG(...) SS_CORE_TRACE(__VA_ARGS__)
@@ -590,12 +591,12 @@ namespace soso {
 			const auto& binding = UniformBufferInfo.BindingPoint;
 			const auto& size = UniformBufferInfo.Size;
 
-			auto uniformBuffer = UniformBuffer::Create(size, binding);
+			auto ub = UniformBuffer::Create(size, binding);
 
 			using Key = decltype(s_UniformBuffers)::key_type;
 			Key key{ this, binding };
 
-			s_UniformBuffers[key] = uniformBuffer;
+			s_UniformBuffers[key] = ub;
 		}
 
 	}
