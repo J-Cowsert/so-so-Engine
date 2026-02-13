@@ -13,3 +13,7 @@ bin-int/
 **.vcxproj.filters
 **.vcxproj.user
 **.csproj
+compile_commands.json
+build/
+Makefile
+**/Makefile
