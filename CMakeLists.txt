@@ -103,31 +103,40 @@ if(WIN32)
     )
     target_compile_definitions(so-so PRIVATE SS_PLATFORM_WINDOWS GLFW_INCLUDE_NONE TRACY_ENABLE TRACY_ON_DEMAND TRACY_CALLSTACK=10)
 elseif(UNIX AND NOT APPLE)
-    # Linux uses vendored shared libraries
-    add_library(assimp-vendor SHARED IMPORTED)
-    set_target_properties(assimp-vendor PROPERTIES
-        IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/so-so/vendor/assimp/lib/linux/libassimp.so"
-        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/so-so/vendor/assimp/include"
-    )
+    option(USE_SYSTEM_LIBS "Use system assimp/shaderc instead of vendored" OFF)
 
-    add_library(shaderc-vendor SHARED IMPORTED)
-    set_target_properties(shaderc-vendor PROPERTIES
-        IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/lib/linux/Debug/libshaderc_shared.so"
-        IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/lib/linux/Debug/libshaderc_shared.so"
-        IMPORTED_LOCATION_RELEASE "${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/lib/linux/Release/libshaderc_shared.so"
-        IMPORTED_LOCATION_DIST "${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/lib/linux/Release/libshaderc_shared.so"
-        INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/include"
-    )
+    if(USE_SYSTEM_LIBS)
+        find_package(PkgConfig REQUIRED)
+        pkg_check_modules(ASSIMP REQUIRED IMPORTED_TARGET assimp)
+        pkg_check_modules(SHADERC REQUIRED IMPORTED_TARGET shaderc)
 
-    target_link_libraries(so-so PUBLIC
-        glfw
-        glad
-        imgui
-        TracyClient
-        OpenGL::GL
-        assimp-vendor
-        shaderc-vendor
-    )
+        target_link_libraries(so-so PUBLIC
+            glfw glad imgui TracyClient OpenGL::GL
+            PkgConfig::ASSIMP
+            PkgConfig::SHADERC
+        )
+    else()
+        add_library(assimp-vendor SHARED IMPORTED)
+        set_target_properties(assimp-vendor PROPERTIES
+            IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/so-so/vendor/assimp/lib/linux/libassimp.so"
+            INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/so-so/vendor/assimp/include"
+        )
+
+        add_library(shaderc-vendor SHARED IMPORTED)
+        set_target_properties(shaderc-vendor PROPERTIES
+            IMPORTED_LOCATION "${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/lib/linux/Debug/libshaderc_shared.so"
+            IMPORTED_LOCATION_DEBUG "${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/lib/linux/Debug/libshaderc_shared.so"
+            IMPORTED_LOCATION_RELEASE "${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/lib/linux/Release/libshaderc_shared.so"
+            IMPORTED_LOCATION_DIST "${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/lib/linux/Release/libshaderc_shared.so"
+            INTERFACE_INCLUDE_DIRECTORIES "${CMAKE_SOURCE_DIR}/so-so/vendor/shaderc/include"
+        )
+
+        target_link_libraries(so-so PUBLIC
+            glfw glad imgui TracyClient OpenGL::GL
+            assimp-vendor shaderc-vendor
+        )
+    endif()
+
     target_compile_definitions(so-so PRIVATE SS_PLATFORM_LINUX)
 endif()
 
