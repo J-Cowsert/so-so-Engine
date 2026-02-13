@@ -1,15 +1,15 @@
 #!/bin/bash
-# Quick build script for Linux
-
 set -e
+
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 CONFIG=${1:-Debug}
 
 echo "Building so-so Engine ($CONFIG)..."
 
-cmake -B build -S . -DCMAKE_BUILD_TYPE=$CONFIG
-cmake --build build -j$(nproc)
+cmake -B "$PROJECT_ROOT/build" -S "$PROJECT_ROOT" -DCMAKE_BUILD_TYPE=$CONFIG
+cmake --build "$PROJECT_ROOT/build" -j$(nproc)
 
 echo ""
 echo "Build complete!"
-echo "Run with: ./build/bin/$CONFIG-Linux-x64/Sandbox/Sandbox"
