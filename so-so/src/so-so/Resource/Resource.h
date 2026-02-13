@@ -29,7 +29,7 @@ namespace soso {
 		friend class ResourceManager;
 
 	public:
-		ResourceID ResourceID = 0;
+		ResourceID ID = 0;
 		uint32_t Flags = (uint32_t)ResourceFlag::None;
 
 		virtual ~Resource() {}
@@ -38,7 +38,7 @@ namespace soso {
 		virtual ResourceType GetResourceType() const { return ResourceType::None; }
 
 		virtual bool operator==(const Resource& other) const {
-			return ResourceID == other.ResourceID;
+			return ID == other.ID;
 		}
 
 		virtual bool operator!=(const Resource& other) const {

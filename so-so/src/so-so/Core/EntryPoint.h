@@ -2,7 +2,7 @@
 
 #include "so-so/Core/Application.h"
 
-#ifdef SS_PLATFORM_WINDOWS
+//#ifdef SS_PLATFORM_WINDOWS
 
 extern  soso::Application* soso::CreateApplication();
 
@@ -15,4 +15,4 @@ int main(int argc, char** argv) {
 	app->Run();
 	delete app;
 }
-#endif
+//#endif

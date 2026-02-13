@@ -99,7 +99,7 @@ namespace soso {
 		: m_Config(config), m_Filepath(filepath)
 	{
 		// Initialize unique resource ID
-		ResourceID = {};
+		ID = {};
 
 		ImageResult result;
 		result = TextureImporter::LoadImageFromFile(filepath);
@@ -125,8 +125,8 @@ namespace soso {
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_TextureHandle);
 		glTextureStorage2D(m_TextureHandle, levels, m_InternalFormat, m_Config.Width, m_Config.Height);
 
-		GLenum filter = Utils::GLSamplerFilter(m_Config.SamplerFilter);
-		GLenum wrap = Utils::GLSamplerWrap(m_Config.SamplerWrap);
+		GLenum filter = Utils::GLSamplerFilter(m_Config.Filter);
+		GLenum wrap = Utils::GLSamplerWrap(m_Config.Wrap);
 
 		// Set filtering
 		if (m_Config.GenerateMips) {
@@ -171,7 +171,7 @@ namespace soso {
 		: m_Config(config)
 	{
 		// Initialize unique resource ID
-		ResourceID = {};
+		ID = {};
 
 		if (config.Height == 0) {
 
@@ -209,8 +209,8 @@ namespace soso {
 		glCreateTextures(GL_TEXTURE_2D, 1, &m_TextureHandle);
 		glTextureStorage2D(m_TextureHandle, levels, m_InternalFormat, m_Config.Width, m_Config.Height);
 
-		GLenum filter = Utils::GLSamplerFilter(m_Config.SamplerFilter);
-		GLenum wrap = Utils::GLSamplerWrap(m_Config.SamplerWrap); // SamplerWrap::Clamp -> GL_CLAMP_TO_EDGE;
+		GLenum filter = Utils::GLSamplerFilter(m_Config.Filter);
+		GLenum wrap = Utils::GLSamplerWrap(m_Config.Wrap); // SamplerWrap::Clamp -> GL_CLAMP_TO_EDGE;
 
 		// Set filtering
 		if (m_Config.GenerateMips) {
@@ -312,7 +312,7 @@ namespace soso {
 	{
 
 		// Initialize unique resource ID
-		ResourceID = {};
+		ID = {};
 
 		SS_CORE_ASSERT(!data.Data, "");
 
@@ -330,8 +330,8 @@ namespace soso {
 		// Sampler Object setup
 		glGenSamplers(1, &m_SamplerHandle);
 
-		GLenum filter = Utils::GLSamplerFilter(m_Config.SamplerFilter);
-		GLenum wrap = Utils::GLSamplerWrap(m_Config.SamplerWrap);
+		GLenum filter = Utils::GLSamplerFilter(m_Config.Filter);
+		GLenum wrap = Utils::GLSamplerWrap(m_Config.Wrap);
 
 
 		// Set filtering

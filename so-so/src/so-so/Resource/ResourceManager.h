@@ -56,7 +56,7 @@ namespace soso {
 
 			ResourceMetadata meta;
 			meta.Filepath = path;
-			meta.ID = resource->ResourceID;
+			meta.ID = resource->ID;
 			meta.Type = resource->GetResourceType();
 
 			SS_CORE_ASSERT(meta.ID != 0, "");

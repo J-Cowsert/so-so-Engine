@@ -5,8 +5,8 @@
 #include "so-so/Events/Event.h"
 #include "so-so/Renderer/GraphicsContext.h"
 
-#include <GLFW/glfw3.h>
 
+struct GLFWwindow;
 
 namespace soso {
 
@@ -17,7 +17,7 @@ namespace soso {
 		bool Fullscreen = false;
 		bool VSync = true;
 	};
-
+	
 	class Window {
 	public:
 		using EventCallbackFunction = std::function<void(Event&)>;

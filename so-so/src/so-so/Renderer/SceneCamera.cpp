@@ -3,7 +3,7 @@
 
 #include "so-so/Core/Input.h"
 #include "so-so/Core/KeyCodes.h"
-#include <glfw/glfw3.h>
+//#include <glfw/glfw3.h>
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include <glm/gtx/quaternion.hpp>

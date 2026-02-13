@@ -47,8 +47,8 @@ namespace soso {
 		uint32_t Width = 1;
 		uint32_t Height = 1;
 		ImageFormat Format = ImageFormat::RGBA8;
-		SamplerFilter SamplerFilter = SamplerFilter::Linear;
-		SamplerWrap SamplerWrap = SamplerWrap::Repeat;
+		SamplerFilter Filter = SamplerFilter::Linear;
+		SamplerWrap Wrap = SamplerWrap::Repeat;
 
 		bool GenerateMips = true;
 	};

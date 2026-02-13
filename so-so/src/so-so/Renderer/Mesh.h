@@ -64,7 +64,7 @@ namespace soso {
 		const AABB& GetBoundingBox() const { return m_BoundingBox; }
 		std::vector<std::shared_ptr<Material>> GetMaterials() const { return m_Materials; }
 
-		const std::string& GetFilepath() const { return m_Filepath.string(); }
+		std::string GetFilepath() const { return m_Filepath.string(); }
 
 	private:
 		void TraverseNodes(void* assimpNode, const glm::mat4& parentTransform = glm::mat4(1.0f), uint32_t level = 0);

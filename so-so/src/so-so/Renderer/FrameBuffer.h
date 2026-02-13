@@ -14,12 +14,11 @@ namespace soso {
 		FrameBufferTextureConfig() = default;
 
 		FrameBufferTextureConfig(ImageFormat format, SamplerFilter filtering = SamplerFilter::Linear, SamplerWrap wrap = SamplerWrap::Clamp)
-			: ImageFormat(format), Filtering(filtering), Wrap(wrap) 
+			: Format(format), Filtering(filtering), Wrap(wrap) 
 		{
 		}
 
-		ImageFormat ImageFormat;
-
+		ImageFormat Format;
 		SamplerFilter Filtering;
 		SamplerWrap Wrap;
 	};

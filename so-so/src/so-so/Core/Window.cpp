@@ -11,6 +11,8 @@
 // TODO: Make this api agnostic. We shouldnt be using OpenGLContext directly
 #include "so-so/RenderAPI/OpenGL/OpenGLContext.h"
 
+#include <GLFW/glfw3.h>
+
 namespace soso {
 
 	static bool s_GLFWInitialized = false;

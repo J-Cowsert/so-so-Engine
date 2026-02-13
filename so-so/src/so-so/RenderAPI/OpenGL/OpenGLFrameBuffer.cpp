@@ -98,7 +98,7 @@ namespace soso {
 	{
 		for (auto& textureConfig : m_Config.Attachments.Attachments) {
 
-			if (!Utils::IsDepthFormat(textureConfig.ImageFormat))
+			if (!Utils::IsDepthFormat(textureConfig.Format))
 				m_ColorAttachmentConfigs.emplace_back(textureConfig);
 			else
 				m_DepthAttachmentConfig = textureConfig;
@@ -139,7 +139,7 @@ namespace soso {
 
 				Utils::BindTexture(multisample, m_ColorAttachments[i]);
 
-				switch (m_ColorAttachmentConfigs[i].ImageFormat) {
+				switch (m_ColorAttachmentConfigs[i].Format) {
 
 					case ImageFormat::RGBA8:
 						Utils::AttachColorTexture(m_ColorAttachments[i], m_Config.Samples, GL_RGBA8, GL_RGBA, m_Config.Width, m_Config.Height, i);
@@ -156,12 +156,12 @@ namespace soso {
 			}
 		}
 
-		if (m_DepthAttachmentConfig.ImageFormat != ImageFormat::None) {
+		if (m_DepthAttachmentConfig.Format != ImageFormat::None) {
 
 			Utils::CreateTextures(multisample, &m_DepthAttachment, 1);
 			Utils::BindTexture(multisample, m_DepthAttachment);
 
-			switch (m_DepthAttachmentConfig.ImageFormat) {
+			switch (m_DepthAttachmentConfig.Format) {
 
 				case ImageFormat::DEPTH24STENCIL8:
 					Utils::AttachDepthTexture(m_DepthAttachment, m_Config.Samples, GL_DEPTH24_STENCIL8, GL_DEPTH_STENCIL_ATTACHMENT, m_Config.Width, m_Config.Height);
@@ -228,6 +228,6 @@ namespace soso {
 		SS_CORE_ASSERT(attachmentIndex < m_ColorAttachments.size(), "");
 
 		auto& config = m_ColorAttachmentConfigs[attachmentIndex];
-		glClearTexImage(m_ColorAttachments[attachmentIndex], 0, Utils::SosoImageFormatToGL(config.ImageFormat), GL_INT, &value);
+		glClearTexImage(m_ColorAttachments[attachmentIndex], 0, Utils::SosoImageFormatToGL(config.Format), GL_INT, &value);
 	}
 }

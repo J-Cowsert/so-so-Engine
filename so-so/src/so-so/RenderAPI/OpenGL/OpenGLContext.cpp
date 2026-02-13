@@ -1,8 +1,9 @@
 #include "sspch.h"
 #include "OpenGLContext.h"
 
+#include <glad/glad.h>
 #include <GLFW/glfw3.h>
-#include <Glad/glad.h>
+
 //#include <GL/GL.h>
 
 soso::OpenGLContext::OpenGLContext(GLFWwindow* contextWindow)
