@@ -3,7 +3,7 @@
 > [!Note]
 > **so-so** *(adjective)*: Neither very good nor very bad.
 
-A personal OpenGL 4.6 rendering engine built for learning graphics programming.
+A personal rendering engine built for learning graphics programming.
 
 ![Sponza scene rendered with PBR, IBL, and shadow mapping](docs/soso_demo.jpg)
 
@@ -16,7 +16,7 @@ A personal OpenGL 4.6 rendering engine built for learning graphics programming.
 - Post-processing pipeline (WIP)
 - Debug rendering (lines, AABBs, wireframe)
 - ImGui editor overlay
-- Tracy profiler integration
+- Profiler integration
 
 ### Tech
 - C++23, OpenGL 4.6
