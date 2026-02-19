@@ -1,8 +1,5 @@
 # so-so Engine
 
-> [!Note]
-> **so-so** *(adjective)*: Neither very good nor very bad.
-
 A personal rendering engine built for learning graphics programming.
 
 ![Sponza scene rendered with PBR, IBL, and shadow mapping](docs/soso_demo.jpg)
