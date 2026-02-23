@@ -1,6 +1,6 @@
 # so-so Engine
 
-A personal rendering engine built for learning graphics programming.
+A rendering engine built for exploring graphics programming and engine architecture.
 
 ![Sponza scene rendered with PBR, IBL, and shadow mapping](docs/soso_demo.jpg)
 
