@@ -144,6 +144,7 @@ target_compile_definitions(so-so PRIVATE
     $<$<CONFIG:Debug>:SS_DEBUG>
     $<$<CONFIG:Release>:SS_RELEASE>
     $<$<CONFIG:Dist>:SS_DIST>
+    SS_PROJECT_ROOT="${CMAKE_SOURCE_DIR}"
 )
 
 set_target_properties(so-so PROPERTIES
