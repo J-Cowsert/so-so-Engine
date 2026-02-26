@@ -1,5 +1,7 @@
 #pragma once
 
+#include <string>
+
 #include "so-so/Core/Layer.h"
 
 #include "so-so/Events/ApplicationEvent.h"
@@ -18,5 +20,8 @@ namespace soso {
 
 		void Begin();
 		void End();
+
+	private:
+		std::string m_IniFilename;
 	};
 }

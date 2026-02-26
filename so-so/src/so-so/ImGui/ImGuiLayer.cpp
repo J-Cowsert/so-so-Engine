@@ -30,6 +30,13 @@ namespace soso {
 		IMGUI_CHECKVERSION();
 		ImGui::CreateContext();
 		ImGuiIO& io = ImGui::GetIO(); (void)io;
+
+		// Point ImGui to the imgui.ini in the sandbox source directory so the
+		// editor layout persists across clean rebuilds and is independent of
+		// the current working directory.
+		m_IniFilename = std::string(SS_PROJECT_ROOT) + "/sandbox/imgui.ini";
+		io.IniFilename = m_IniFilename.c_str();
+
 		io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;       // Enable Keyboard Controls
 		io.ConfigFlags |= ImGuiConfigFlags_DockingEnable;           // Enable Docking
 		//io.ConfigFlags |= ImGuiConfigFlags_ViewportsEnable;         // Enable Multi-Viewport / Platform Windows
