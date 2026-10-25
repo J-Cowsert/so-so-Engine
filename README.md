@@ -39,6 +39,12 @@ cmake --build build --config Debug
 
 Or open `CMakeLists.txt` directly in Visual Studio (File > Open > CMake...)
 
+## Development
+
+Read [AGENTS.md](AGENTS.md) for project priorities, C++ standards, and repository
+skills. See [development validation](docs/development-validation.md) for current
+build commands, verification requirements, and known infrastructure gaps.
+
 ## Resources
 - [The Cherno](https://www.youtube.com/@TheCherno)
 - [Learn OpenGL](https://learnopengl.com/)
