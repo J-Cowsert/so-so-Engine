@@ -24,7 +24,8 @@ goals; existing code is context, not an obligation to preserve a poor design.
 - `sandbox/src/`: client application, editor, and interactive examples.
 - `sandbox/Resources/Shader/`: runtime shader sources loaded by the renderer.
 - `sandbox/assets/`: example assets; `so-so/vendor/`: dependencies.
-- `CMakeLists.txt`, `scripts/`, `.github/workflows/build.yml`: build and CI.
+- `tests/`: context-free core unit/regression tests.
+- `CMakeLists.txt`, `cmake/`, `scripts/`, `.github/workflows/build.yml`: build and CI.
 
 Read the relevant repository skill before its workflow. Skills live in
 `.agents/skills/`; read the file directly if automatic discovery is unavailable.

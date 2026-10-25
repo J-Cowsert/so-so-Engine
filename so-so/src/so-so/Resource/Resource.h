@@ -1,21 +1,20 @@
 #pragma once
 
-#include "so-so/Core/Core.h"
 #include "so-so/Core/UID.h"
 
-#include <filesystem>
+#include <cstdint>
 
 
 namespace soso {
 	
-	enum class ResourceFlag : uint32_t {
+	enum class ResourceFlag : std::uint32_t {
 		
 		None = 0,
-		Invalid = BIT(0),
-		Missing = BIT(1)
+		Invalid = 1u << 0,
+		Missing = 1u << 1
 	};
 
-	enum class ResourceType : uint32_t {
+	enum class ResourceType : std::uint32_t {
 
 		None = 0,
 		Texture2D,
@@ -30,7 +29,7 @@ namespace soso {
 
 	public:
 		ResourceID ID = 0;
-		uint32_t Flags = (uint32_t)ResourceFlag::None;
+		std::uint32_t Flags = (std::uint32_t)ResourceFlag::None;
 
 		virtual ~Resource() {}
 
@@ -42,14 +41,14 @@ namespace soso {
 		}
 
 		virtual bool operator!=(const Resource& other) const {
-			return *this != other;
+			return !(*this == other);
 		}
 
 	private:
-		bool IsValid() const { return ((Flags & (uint32_t)ResourceFlag::Invalid) | (Flags & (uint32_t)ResourceFlag::Missing)) == 0; }
-		bool IsFlagSet(ResourceFlag flag) const { return Flags & (uint32_t)flag; }
+		bool IsValid() const { return ((Flags & (std::uint32_t)ResourceFlag::Invalid) | (Flags & (std::uint32_t)ResourceFlag::Missing)) == 0; }
+		bool IsFlagSet(ResourceFlag flag) const { return Flags & (std::uint32_t)flag; }
 
-		void EnableFlag(ResourceFlag flag) { Flags |= (uint32_t)flag; }
-		void DisableFlag(ResourceFlag flag) { Flags &= ~(uint32_t)flag; }
+		void EnableFlag(ResourceFlag flag) { Flags |= (std::uint32_t)flag; }
+		void DisableFlag(ResourceFlag flag) { Flags &= ~(std::uint32_t)flag; }
 	};
 }

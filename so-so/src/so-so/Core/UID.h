@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Core.h"
-
+#include <cstddef>
+#include <cstdint>
+#include <functional>
 
 namespace soso {
 
@@ -10,13 +11,12 @@ namespace soso {
 	class UID {
 	public:
 		UID();
-		UID(uint64_t uid);
+		UID(std::uint64_t uid);
 
-		operator uint64_t () { return m_UID; }
-		operator const uint64_t () const { return m_UID; }
+		operator std::uint64_t() const noexcept { return m_UID; }
 
 	private:
-		uint64_t m_UID;
+		std::uint64_t m_UID;
 	};
 }
 
@@ -25,9 +25,8 @@ namespace std {
 	template<>
 	struct hash<soso::UID> {
 
-		std::size_t operator()(const soso::UID& uid) const {
-			
-			return uid;
+		std::size_t operator()(const soso::UID& uid) const noexcept {
+			return std::hash<std::uint64_t>{}(static_cast<std::uint64_t>(uid));
 		}
 	};
 }

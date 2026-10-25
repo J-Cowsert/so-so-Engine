@@ -1,26 +1,28 @@
 #pragma once
 
-#include "Core.h"
 #include "Timestep.h"
-#include "so-so/Events/Event.h"
+
+#include <string>
 
 namespace soso {
+
+	class Event;
 
 	class Layer {
 
 	public:
-		Layer(const std::string& name = "Layer");
+		Layer(std::string name = "Layer");
 		virtual ~Layer() = default;
 
 		virtual void OnAttach() {}
 		virtual void OnDetach() {}
-		virtual void OnUpdate(Timestep ts) {}
+		virtual void OnUpdate(Timestep) {}
 		virtual void OnImGuiRender() {}
-		virtual void OnEvent(Event& event) {}
+		virtual void OnEvent(Event&) {}
 
 		inline const std::string& GetName() const { return m_DebugName; }
 
 	protected:
-		const std::string& m_DebugName;
+		std::string m_DebugName;
 	};
 }

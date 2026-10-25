@@ -1,32 +1,65 @@
 # Development validation
 
-Run commands from the repository root. `CMakeLists.txt` and the current workflows
-are authoritative when older build instructions disagree. Use separate build
-directories for different configurations/toolchains; do not destroy another
-developer's build tree to obtain a clean result.
+Run commands from the repository root. `CMakeLists.txt`, `cmake/Engine.cmake`, and
+the current workflows are authoritative when build instructions disagree. Use
+separate build directories for different configurations/toolchains; do not destroy
+another developer's build tree to obtain a clean result.
 
 ## Current baseline
 
-The project defines a C++23 static library, `so-so`, and a client executable,
-`Sandbox`. CMake 3.25 or newer is required. Linux and Windows have Debug and
-Release CI jobs; Dist is also declared by CMake. CI currently builds and uploads
-artifacts; it does not run a project test suite or graphics acceptance checks.
+The project defines C++23 static libraries `soso-core` and `so-so`, and a client
+executable, `Sandbox`. CMake 3.25 or newer is required. Linux and Windows have Debug
+and Release CI jobs that build and run core tests before uploading artifacts.
+A separate Linux Clang job runs headless core tests under ASan and UBSan. Dist is
+also declared by CMake. Graphics acceptance and performance checks remain manual.
 
-At the initial guidance revision:
+The initial core test suite covers UID value/hash behavior, owned layer names,
+and resource identity comparisons. It has six doctest cases exposed as one CTest
+entry, `soso.core`. Tests are enabled by default with `BUILD_TESTING=ON`; test
+dependencies are vendored and never downloaded during configuration/build. The
+missing UID include, dangling layer-name reference, and recursive resource
+inequality have regression coverage. This is initial coverage, not verification of
+the entire engine, rendering, lifecycle, or concurrency.
 
-- The local Linux Debug engine library compiled, but Sandbox failed because
-  `so-so/src/so-so/Core/UID.h` uses `uint64_t` without including `<cstdint>`.
-  This is an observed failure, not a complete inventory of build defects.
-- No first-party tests are registered with CTest. `TestLayer` is an interactive
-  demo, not an automated test suite. A zero-test run does not validate behavior.
 - Tracy is linked, but `SS_ENABLE_PROFILING` in `Core/Profiler.h` is `0`.
   Verify instrumentation is active before interpreting a profiling capture.
-- `BUILD.md` contains obsolete script paths and overstates the absence of system
-  prerequisites. The executable scripts are `scripts/build.sh` and `scripts/run.sh`.
+- `TestLayer` is an interactive demo, not an automated graphics test suite.
 
 Recheck these observations before relying on them and update this section as the
-gaps are repaired. Do not mark unrelated work as tested because a known failure
-exists, and do not silently include baseline repairs in a documentation change.
+gaps are repaired. A zero-test run does not validate behavior. Distinguish observed
+results from configured CI checks; a workflow definition does not establish that a
+particular commit passed remote CI.
+
+## Fast headless checks
+
+Core tests need a C++23 compiler and CMake, without OpenGL development packages or
+initialized submodules. They link the same `soso-core` library as the engine and
+do not use its precompiled header. Each tested public header is included first in
+its own test translation unit so missing direct includes break the build.
+
+```bash
+cmake -S . -B build/core-debug -DCMAKE_BUILD_TYPE=Debug -DSS_BUILD_ENGINE=OFF
+cmake --build build/core-debug --parallel 2
+ctest --test-dir build/core-debug --output-on-failure --no-tests=error
+```
+
+Use a separate `build/core-release` tree with `-DCMAKE_BUILD_TYPE=Release` for
+optimized behavior. With a Visual Studio generator, select `--config Debug` at
+build time and `-C Debug` for CTest; use Release in both places for that configuration.
+
+Linux sanitizer checks (GCC or Clang):
+
+```bash
+cmake -S . -B build/core-sanitized -DCMAKE_BUILD_TYPE=Debug -DSS_BUILD_ENGINE=OFF -DSS_ENABLE_SANITIZERS=ON
+cmake --build build/core-sanitized --parallel 2
+ctest --test-dir build/core-sanitized --output-on-failure --no-tests=error
+```
+
+Choose compilers when creating a fresh build tree, for example with
+`-DCMAKE_C_COMPILER=clang -DCMAKE_CXX_COMPILER=clang++`. Sanitizer options propagate
+from `soso-core` to its consumers and fail on detected undefined behavior. A
+ptrace-restricted sandbox may prevent LeakSanitizer from running; rerun in a
+permitted environment rather than disabling leak checks or calling the run passed.
 
 ## Build and launch
 
@@ -85,23 +118,23 @@ must remove source-tree/write assumptions.
 | Optimization | Correctness checks plus repeatable before/after CPU/GPU frame-time and memory measurements on the same workload |
 | Build, dependencies, packaging | Fresh configuration/build of affected configurations/platforms, dependency resolution, launch from packaged/install output |
 
-Add unit tests with the first behavior change that needs them, using a single
-maintainable C++ test framework and CTest integration. Keep suitable logic tests
-headless; graphics tests need a real compatible context, not just mocked GL calls.
-Until tests are registered, this discovery command reports the gap:
+Add regression tests with behavior changes using the existing doctest/CTest setup.
+Keep suitable logic tests headless; graphics tests need a real compatible context,
+not just mocked GL calls. Inspect registration when adding or moving tests:
 
 ```bash
 ctest --test-dir build/debug -N
 ```
 
-After integrating tests, use a command that fails when none are found:
+Execute tests with a command that fails when none are found:
 
 ```bash
 ctest --test-dir build/debug --output-on-failure --no-tests=error
 ```
 
 For a Windows multi-configuration tree, also select `-C Debug` or `-C Release`.
-Do not present the future command as evidence that today's repository has tests.
+The doctest executable reports individual case/assertion counts; CTest reports one
+entry for the complete core suite.
 
 Use AddressSanitizer and UndefinedBehaviorSanitizer for appropriate supported C++
 checks; use ThreadSanitizer separately when concurrency changes warrant it. Wire
