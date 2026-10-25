@@ -1,73 +1,64 @@
-# Build Instructions
+# Build and test
 
-## Linux (CMake)
+Use CMake 3.25+ and a compiler with the C++23 standard-library features used by the
+engine. Linux and Windows are the current engine platforms. Dependencies are
+vendored, but platform development packages/toolchains are still required.
 
-### Prerequisites
-All dependencies are vendored in the `so-so/vendor/` directory. No system packages required.
-
-### Build Commands
+From a fresh clone, initialize the submodule revisions pinned by the repository:
 
 ```bash
-# Configure
-cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
-
-# Build
-cmake --build build -j$(nproc)
-
-# Run
-./run.sh
+git submodule update --init --recursive
 ```
 
-### Build Configurations
-- **Debug**: Development build with debug symbols
-- **Release**: Optimized build
-- **Dist**: Distribution build (same as Release)
+Preserve local changes when working in an existing checkout. Do not update
+submodules to branch tips as part of an ordinary build.
 
-To change configuration:
+## Linux
+
+The default engine build uses the vendored Assimp/shaderc libraries. It still
+requires OpenGL development files and GLFW's X11 development prerequisites. On
+Ubuntu, the CI workflow installs `libgl1-mesa-dev` and `xorg-dev`; its system-library
+build additionally installs `libassimp-dev` and `libshaderc-dev`.
+
 ```bash
-./build.sh Release
-./run.sh Release
+scripts/build.sh Debug
+ctest --test-dir build --output-on-failure --no-tests=error
+scripts/run.sh Debug
 ```
 
-Or manually:
+`scripts/build.sh Release` builds Release in the same tree. Use separate build
+directories for side-by-side configurations or different toolchains; see the
+[validation guide](docs/development-validation.md#build-and-launch).
+
+## Windows
+
+Use a Visual Studio toolchain with the required C++23 library support:
+
+```powershell
+cmake -S . -B build/windows
+cmake --build build/windows --config Debug --parallel 2
+ctest --test-dir build/windows -C Debug --output-on-failure --no-tests=error
+```
+
+Select Release in both commands for an optimized build. The application is under
+`build/windows/bin/Debug-Windows-x64/Sandbox`. Current asset-copy and working-directory
+limitations are described in the validation guide; building alone does not verify
+an installed/deployed application.
+
+## Headless core tests
+
+These need no OpenGL packages or initialized submodules. The test framework is
+vendored and used only by the test executable.
+
 ```bash
-cmake -B build -S . -DCMAKE_BUILD_TYPE=Release
-cmake --build build -j$(nproc)
+cmake -S . -B build/core-debug -DCMAKE_BUILD_TYPE=Debug -DSS_BUILD_ENGINE=OFF
+cmake --build build/core-debug --parallel 2
+ctest --test-dir build/core-debug --output-on-failure --no-tests=error
 ```
 
-### Clean Build
-```bash
-rm -rf build
-cmake -B build -S . -DCMAKE_BUILD_TYPE=Debug
-cmake --build build -j$(nproc)
-```
+For multi-configuration generators, add `--config Debug` to the build and `-C Debug`
+to CTest. Use a separate tree with `-DSS_ENABLE_SANITIZERS=ON` for Linux GCC/Clang
+ASan+UBSan checks. `BUILD_TESTING=OFF` omits the test executable and framework.
 
-## Project Structure
-
-- `so-so/` - Engine library (static)
-- `Sandbox/` - Test application (executable)
-- `so-so/vendor/` - All vendored dependencies
-  - `GLFW` - Window/input handling
-  - `Glad` - OpenGL loader
-  - `imgui` - UI library
-  - `tracy` - Profiling
-  - `assimp` - Model loading
-  - `shaderc` - Shader compilation
-  - `spirv-cross` - Shader reflection
-  - `glm` - Math library
-  - `spdlog` - Logging
-
-## Migration from Premake
-
-The project has been migrated from Premake5 to CMake for Linux builds. Key changes:
-
-1. **Vendored Dependencies**: All dependencies are now in `so-so/vendor/` (including shaderc for Linux)
-2. **Build System**: Uses CMake instead of Premake
-3. **Platform Defines**: `SS_PLATFORM_LINUX` is automatically defined on Linux builds
-4. **Shared Libraries**: Assimp and shaderc are automatically copied to the output directory
-
-## Notes
-
-- The build uses C++23 standard
-- Tracy profiling is enabled with on-demand mode
-- OpenGLShader compilation is now enabled (was previously disabled with `#if 0`)
+See [development validation](docs/development-validation.md) for supported commands,
+checks by change type, current coverage, sanitizer constraints, and known gaps.

@@ -19,10 +19,13 @@ jobs:
         submodules: recursive
 
     - name: Configure CMake
-      run: cmake -B build -S .
+      run: cmake -B build -S . -DBUILD_TESTING=ON
 
     - name: Build
       run: cmake --build build --config ${{ matrix.config }} -j
+
+    - name: Test
+      run: ctest --test-dir build -C ${{ matrix.config }} --output-on-failure --no-tests=error
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
@@ -47,13 +50,37 @@ jobs:
         sudo apt-get install -y libgl1-mesa-dev xorg-dev libassimp-dev libshaderc-dev
 
     - name: Configure CMake
-      run: cmake -B build -S . -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SYSTEM_LIBS=ON
+      run: cmake -B build -S . -DCMAKE_BUILD_TYPE=${{ matrix.config }} -DUSE_SYSTEM_LIBS=ON -DBUILD_TESTING=ON
 
     - name: Build
       run: cmake --build build -j$(nproc)
+
+    - name: Test
+      run: ctest --test-dir build --output-on-failure --no-tests=error
 
     - name: Upload artifacts
       uses: actions/upload-artifact@v4
       with:
         name: linux-${{ matrix.config }}
         path: build/bin/${{ matrix.config }}-Linux-x64/
+
+  test-core-sanitizers:
+    runs-on: ubuntu-latest
+    env:
+      CC: clang
+      CXX: clang++
+      ASAN_OPTIONS: detect_stack_use_after_return=1
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Configure headless tests with sanitizers
+      run: >-
+        cmake -S . -B build/core-sanitized -DCMAKE_BUILD_TYPE=Debug
+        -DSS_BUILD_ENGINE=OFF -DBUILD_TESTING=ON -DSS_ENABLE_SANITIZERS=ON
+
+    - name: Build
+      run: cmake --build build/core-sanitized --parallel 2
+
+    - name: Test
+      run: ctest --test-dir build/core-sanitized --output-on-failure --no-tests=error

@@ -1,7 +1,8 @@
-#include "sspch.h"
 #include "Layer.h"
 
-soso::Layer::Layer(const std::string& debugName) 
-	: m_DebugName(debugName) {
+#include <utility>
+
+soso::Layer::Layer(std::string debugName)
+	: m_DebugName(std::move(debugName)) {
 
 }

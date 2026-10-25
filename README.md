@@ -45,6 +45,14 @@ Read [AGENTS.md](AGENTS.md) for project priorities, C++ standards, and repositor
 skills. See [development validation](docs/development-validation.md) for current
 build commands, verification requirements, and known infrastructure gaps.
 
+Core unit tests can be built without graphics dependencies or submodules:
+
+```bash
+cmake -S . -B build/core-debug -DCMAKE_BUILD_TYPE=Debug -DSS_BUILD_ENGINE=OFF
+cmake --build build/core-debug --parallel 2
+ctest --test-dir build/core-debug --output-on-failure --no-tests=error
+```
+
 ## Resources
 - [The Cherno](https://www.youtube.com/@TheCherno)
 - [Learn OpenGL](https://learnopengl.com/)
